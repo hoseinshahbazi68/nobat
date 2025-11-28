@@ -59,7 +59,7 @@ public class ProvinceService : IProvinceService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var filteredQuery = _sieveProcessor.Apply(sieveModel, query);

@@ -14,8 +14,15 @@ export class InsurancesComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'code', 'isActive', 'actions'];
   insurances: Insurance[] = [];
   filteredInsurances: Insurance[] = [];
+  paginatedInsurances: Insurance[] = [];
   filterValue: string = '';
   isLoading = false;
+
+  // Pagination properties
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   constructor(
     private dialogService: DialogService,
@@ -29,10 +36,10 @@ export class InsurancesComponent implements OnInit {
 
   loadInsurances() {
     this.isLoading = true;
-    this.insuranceService.getAll({ page: 1, pageSize: 100 }).subscribe({
+    this.insuranceService.getAll({ page: 1, pageSize: 1000 }).subscribe({
       next: (result) => {
         this.insurances = result.items;
-        this.filteredInsurances = [...this.insurances];
+        this.applyFilter();
         this.isLoading = false;
       },
       error: (error) => {
@@ -41,6 +48,32 @@ export class InsurancesComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  updatePagination() {
+    this.totalCount = this.filteredInsurances.length;
+    this.totalPages = Math.ceil(this.totalCount / this.pageSize) || 1;
+
+    // Ensure currentPage is within valid range
+    if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages || 1;
+    }
+
+    // Calculate paginated items
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+    this.paginatedInsurances = this.filteredInsurances.slice(startIndex, endIndex);
+  }
+
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.updatePagination();
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.updatePagination();
   }
 
   openAddDialog() {
@@ -80,7 +113,6 @@ export class InsurancesComponent implements OnInit {
           this.insuranceService.delete(insurance.id!).subscribe({
             next: () => {
               this.insurances = this.insurances.filter(i => i.id !== insurance.id);
-              this.filteredInsurances = [...this.insurances];
               this.applyFilter();
               this.snackbarService.success('بیمه با موفقیت حذف شد', 'بستن', 3000);
             },
@@ -102,7 +134,6 @@ export class InsurancesComponent implements OnInit {
           const index = this.insurances.findIndex(i => i.id === id);
           if (index !== -1) {
             this.insurances[index] = updatedInsurance;
-            this.filteredInsurances = [...this.insurances];
             this.applyFilter();
           }
           this.snackbarService.success('بیمه با موفقیت ویرایش شد', 'بستن', 3000);
@@ -116,7 +147,6 @@ export class InsurancesComponent implements OnInit {
       this.insuranceService.create(insuranceData).subscribe({
         next: (newInsurance) => {
           this.insurances = [...this.insurances, newInsurance];
-          this.filteredInsurances = [...this.insurances];
           this.applyFilter();
           this.snackbarService.success('بیمه با موفقیت اضافه شد', 'بستن', 3000);
         },
@@ -131,12 +161,15 @@ export class InsurancesComponent implements OnInit {
   applyFilter() {
     if (!this.filterValue.trim()) {
       this.filteredInsurances = [...this.insurances];
-      return;
+    } else {
+      const filter = this.filterValue.trim().toLowerCase();
+      this.filteredInsurances = this.insurances.filter(insurance =>
+        insurance.name.toLowerCase().includes(filter) ||
+        insurance.code.toLowerCase().includes(filter)
+      );
     }
-    const filter = this.filterValue.trim().toLowerCase();
-    this.filteredInsurances = this.insurances.filter(insurance =>
-      insurance.name.toLowerCase().includes(filter) ||
-      insurance.code.toLowerCase().includes(filter)
-    );
+    // Reset to first page when filtering
+    this.currentPage = 1;
+    this.updatePagination();
   }
 }

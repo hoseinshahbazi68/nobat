@@ -7,6 +7,7 @@ using Nobat.Application.Schedules;
 using Nobat.Application.Users;
 using Nobat.Application.Users.Dto;
 using Nobat.Domain.Entities.Doctors;
+using Nobat.Domain.Entities.Users;
 using Nobat.Domain.Interfaces;
 using Sieve.Models;
 using Sieve.Services;
@@ -83,7 +84,7 @@ public class DoctorService : IDoctorService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var doctor = await query
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)
@@ -168,7 +169,7 @@ public class DoctorService : IDoctorService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             //query = query
             //    .Include(d => d.User)
             //    .Include(d => d.DoctorClinics)
@@ -190,7 +191,8 @@ public class DoctorService : IDoctorService
                 NationalCode = x.User.NationalCode,
                 Phone = x.User.PhoneNumber,
                 Id = x.Id,
-                CreatedAt = x.CreatedAt
+                CreatedAt = x.CreatedAt,
+                UserId = x.UserId
             }).ToListAsync(cancellationToken);
 
             //var doctorDtos = doctors.Select(d =>
@@ -272,7 +274,7 @@ public class DoctorService : IDoctorService
                 }
             }
 
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
 
             // بررسی وجود پزشک با کد نظام پزشکی مشابه
             var existingDoctor = await query
@@ -442,7 +444,7 @@ public class DoctorService : IDoctorService
             // اگر پزشک با موفقیت ایجاد شد و فایل وجود دارد، عکس را آپلود کن
             if (result.Status && result.Data != null && dto.ProfilePictureFile != null && dto.ProfilePictureFile.Length > 0)
             {
-                var query = await _repository.GetQueryableAsync(cancellationToken);
+                var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
                 var doctor = await query
                     .Include(d => d.User)
                     .FirstOrDefaultAsync(d => d.Id == result.Data.Id, cancellationToken);
@@ -529,7 +531,7 @@ public class DoctorService : IDoctorService
             }
 
             // بارگذاری مجدد با شامل کردن روابط
-            var reloadedQuery = await _repository.GetQueryableAsync(cancellationToken);
+            var reloadedQuery = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             doctor = await reloadedQuery
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)
@@ -665,7 +667,7 @@ public class DoctorService : IDoctorService
             }
 
             // بارگذاری مجدد با شامل کردن روابط
-            var reloadedQuery = await _repository.GetQueryableAsync(cancellationToken);
+            var reloadedQuery = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             doctor = await reloadedQuery
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)
@@ -774,7 +776,7 @@ public class DoctorService : IDoctorService
     {
         try
         {
-            var dbQuery = await _repository.GetQueryableAsync(cancellationToken);
+            var dbQuery = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             dbQuery = dbQuery
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)
@@ -873,7 +875,7 @@ public class DoctorService : IDoctorService
                 return ApiResponse<DoctorDto>.Error("کد نظام پزشکی نمی‌تواند خالی باشد", 400);
             }
 
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var doctor = await query
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)
@@ -943,7 +945,7 @@ public class DoctorService : IDoctorService
         try
         {
             // دریافت تخصص‌های موجود پزشک
-            var query = await _doctorSpecialtyRepository.GetQueryableAsync(cancellationToken);
+            var query = await _doctorSpecialtyRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var existingSpecialties = await query
                 .Where(ds => ds.DoctorId == doctorId)
                 .ToListAsync(cancellationToken);
@@ -1016,7 +1018,7 @@ public class DoctorService : IDoctorService
         try
         {
             // دریافت علائم موجود پزشک
-            var query = await _doctorMedicalConditionRepository.GetQueryableAsync(cancellationToken);
+            var query = await _doctorMedicalConditionRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var existingConditions = await query
                 .Where(dmc => dmc.DoctorId == doctorId)
                 .ToListAsync(cancellationToken);
@@ -1069,7 +1071,7 @@ public class DoctorService : IDoctorService
         try
         {
             // دریافت علائم مرتبط با تخصص‌ها
-            var specialtyConditionQuery = await _specialtyMedicalConditionRepository.GetQueryableAsync(cancellationToken);
+            var specialtyConditionQuery = await _specialtyMedicalConditionRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var specialtyConditions = await specialtyConditionQuery
                 .Where(smc => specialtyIds.Contains(smc.SpecialtyId))
                 .Select(smc => smc.MedicalConditionId)
@@ -1079,7 +1081,7 @@ public class DoctorService : IDoctorService
             if (specialtyConditions.Any())
             {
                 // دریافت علائم موجود پزشک
-                var doctorConditionQuery = await _doctorMedicalConditionRepository.GetQueryableAsync(cancellationToken);
+                var doctorConditionQuery = await _doctorMedicalConditionRepository.GetQueryableNoTrackingAsync(cancellationToken);
                 var existingDoctorConditions = await doctorConditionQuery
                     .Where(dmc => dmc.DoctorId == doctorId)
                     .Select(dmc => dmc.MedicalConditionId)
@@ -1136,7 +1138,7 @@ public class DoctorService : IDoctorService
             }
 
             // جستجوی علائم پزشکی
-            var medicalConditionQuery = await _medicalConditionRepository.GetQueryableAsync(cancellationToken);
+            var medicalConditionQuery = await _medicalConditionRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var medicalConditionNameLower = medicalConditionName.ToLower();
             var medicalConditions = await medicalConditionQuery
                 .Where(mc => mc.Name.ToLower().Contains(medicalConditionNameLower))
@@ -1157,7 +1159,7 @@ public class DoctorService : IDoctorService
             }
 
             // جستجوی پزشکان مرتبط با این علائم
-            var dbQuery = await _repository.GetQueryableAsync(cancellationToken);
+            var dbQuery = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             dbQuery = dbQuery
                 .Include(d => d.User)
                 .Include(d => d.DoctorClinics)

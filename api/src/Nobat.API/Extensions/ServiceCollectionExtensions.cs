@@ -361,7 +361,12 @@ public static class ServiceCollectionExtensions
     /// <returns>مجموعه سرویس‌ها</returns>
     public static IServiceCollection AddMinimalMvc(this IServiceCollection services)
     {
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            });
         services.AddEndpointsApiExplorer();
         return services;
     }

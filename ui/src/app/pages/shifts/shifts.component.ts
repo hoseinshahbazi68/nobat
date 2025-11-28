@@ -13,9 +13,14 @@ import { Shift } from '../../models/shift.model';
 export class ShiftsComponent implements OnInit {
   displayedColumns: string[] = ['id', 'name', 'startTime', 'endTime', 'description', 'actions'];
   shifts: Shift[] = [];
-  filteredShifts: Shift[] = [];
   filterValue: string = '';
   isLoading = false;
+
+  // Pagination properties
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   constructor(
     private dialogService: DialogService,
@@ -29,10 +34,25 @@ export class ShiftsComponent implements OnInit {
 
   loadShifts() {
     this.isLoading = true;
-    this.shiftService.getAll({ page: 1, pageSize: 100 }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // Add filter if exists
+    if (this.filterValue && this.filterValue.trim()) {
+      params.filters = this.filterValue.trim();
+    }
+
+    this.shiftService.getAll(params).subscribe({
       next: (result) => {
-        this.shifts = result.items;
-        this.filteredShifts = [...this.shifts];
+        if (result && result.items) {
+          this.shifts = result.items;
+          this.totalCount = result.totalCount;
+          this.totalPages = result.totalPages;
+          this.currentPage = result.page;
+        } else {
+          this.shifts = [];
+          this.totalCount = 0;
+          this.totalPages = 0;
+        }
         this.isLoading = false;
       },
       error: (error) => {
@@ -41,6 +61,17 @@ export class ShiftsComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadShifts();
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.loadShifts();
   }
 
   openAddDialog() {
@@ -79,9 +110,11 @@ export class ShiftsComponent implements OnInit {
         if (result) {
           this.shiftService.delete(shift.id!).subscribe({
             next: () => {
-              this.shifts = this.shifts.filter(s => s.id !== shift.id);
-              this.filteredShifts = [...this.shifts];
-              this.applyFilter();
+              // If current page becomes empty after deletion, go to previous page
+              if (this.shifts.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadShifts();
               this.snackbarService.success('شیفت با موفقیت حذف شد', 'بستن', 3000);
             },
             error: (error) => {
@@ -99,14 +132,9 @@ export class ShiftsComponent implements OnInit {
       // ویرایش شیفت موجود
       const updateData = { ...shiftData, id };
       this.shiftService.update(updateData).subscribe({
-        next: (updatedShift) => {
-          const index = this.shifts.findIndex(s => s.id === id);
-          if (index !== -1) {
-            this.shifts[index] = updatedShift;
-            this.filteredShifts = [...this.shifts];
-            this.applyFilter();
-          }
+        next: () => {
           this.snackbarService.success('شیفت با موفقیت ویرایش شد', 'بستن', 3000);
+          this.loadShifts();
         },
         error: (error) => {
           const errorMessage = error.error?.message || 'خطا در ویرایش شیفت';
@@ -116,11 +144,9 @@ export class ShiftsComponent implements OnInit {
     } else {
       // افزودن شیفت جدید
       this.shiftService.create(shiftData).subscribe({
-        next: (newShift) => {
-          this.shifts = [...this.shifts, newShift];
-          this.filteredShifts = [...this.shifts];
-          this.applyFilter();
+        next: () => {
           this.snackbarService.success('شیفت با موفقیت اضافه شد', 'بستن', 3000);
+          this.loadShifts();
         },
         error: (error) => {
           const errorMessage = error.error?.message || 'خطا در افزودن شیفت';
@@ -131,16 +157,8 @@ export class ShiftsComponent implements OnInit {
   }
 
   applyFilter() {
-    if (!this.filterValue.trim()) {
-      this.filteredShifts = [...this.shifts];
-      return;
-    }
-    const filter = this.filterValue.trim().toLowerCase();
-    this.filteredShifts = this.shifts.filter(shift =>
-      shift.name.toLowerCase().includes(filter) ||
-      shift.startTime.includes(filter) ||
-      shift.endTime.includes(filter) ||
-      (shift.description && shift.description.toLowerCase().includes(filter))
-    );
+    // Reset to first page when filtering
+    this.currentPage = 1;
+    this.loadShifts();
   }
 }

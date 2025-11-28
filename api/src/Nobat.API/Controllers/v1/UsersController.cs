@@ -133,4 +133,18 @@ public class UsersController : BaseController
         var response = await _userService.RemoveClinicFromUserAsync(id, clinicId, cancellationToken);
         return ToActionResult(response);
     }
+
+    /// <summary>
+    /// تغییر رمز عبور کاربر توسط ادمین (بدون نیاز به رمز عبور فعلی)
+    /// </summary>
+    /// <param name="id">شناسه کاربر</param>
+    /// <param name="resetPasswordDto">اطلاعات تغییر رمز عبور</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>نتیجه عملیات</returns>
+    [HttpPut("{id}/password")]
+    public async Task<IActionResult> ResetUserPassword(int id, [FromBody] ResetUserPasswordDto resetPasswordDto, CancellationToken cancellationToken)
+    {
+        var response = await _userService.ResetUserPasswordAsync(id, resetPasswordDto, cancellationToken);
+        return ToActionResult(response);
+    }
 }

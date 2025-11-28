@@ -6,6 +6,7 @@ import { LayoutComponent } from './components/layout/layout.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { UserRolesComponent } from './pages/user-roles/user-roles.component';
 import { UsersComponent } from './pages/users/users.component';
+import { UserFormComponent } from './pages/users/user-form.component';
 import { HolidaysComponent } from './pages/holidays/holidays.component';
 import { ShiftsComponent } from './pages/shifts/shifts.component';
 import { ServicesComponent } from './pages/services/services.component';
@@ -24,6 +25,7 @@ import { QueryLogsComponent } from './pages/query-logs/query-logs.component';
 import { HomeComponent } from './pages/home/home.component';
 import { ChatSupportComponent } from './pages/chat-support/chat-support.component';
 import { ClinicsComponent } from './pages/clinics/clinics.component';
+import { ClinicFormComponent } from './pages/clinics/clinic-form.component';
 import { DoctorTariffsComponent } from './pages/doctor-tariffs/doctor-tariffs.component';
 import { MedicalConditionsComponent } from './pages/medical-conditions/medical-conditions.component';
 import { DoctorVisitInfosComponent } from './pages/doctor-visit-infos/doctor-visit-infos.component';
@@ -41,6 +43,8 @@ const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'user-roles', component: UserRolesComponent },
       { path: 'users', component: UsersComponent },
+      { path: 'users/new', component: UserFormComponent },
+      { path: 'users/:id', component: UserFormComponent },
       { path: 'holidays', component: HolidaysComponent },
       { path: 'shifts', component: ShiftsComponent },
       { path: 'services', component: ServicesComponent },
@@ -59,6 +63,8 @@ const routes: Routes = [
       { path: 'chat-support', component: ChatSupportComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'clinics', component: ClinicsComponent },
+      { path: 'clinics/new', component: ClinicFormComponent },
+      { path: 'clinics/:id', component: ClinicFormComponent },
       { path: 'doctor-tariffs', component: DoctorTariffsComponent },
       { path: 'medical-conditions', component: MedicalConditionsComponent },
       { path: 'doctor-visit-infos', component: DoctorVisitInfosComponent }

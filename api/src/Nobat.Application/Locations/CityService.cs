@@ -39,7 +39,7 @@ public class CityService : ICityService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var city = await query
                 .Include(c => c.Province)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -72,7 +72,7 @@ public class CityService : ICityService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             query = query.Include(c => c.Province);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -114,7 +114,7 @@ public class CityService : ICityService
 
             _logger.LogInformation("City created with ID: {CityId}", city.Id);
 
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var createdCity = await query
                 .Include(c => c.Province)
                 .FirstOrDefaultAsync(c => c.Id == city.Id, cancellationToken);
@@ -154,7 +154,7 @@ public class CityService : ICityService
 
             _logger.LogInformation("City updated with ID: {CityId}", city.Id);
 
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var updatedCity = await query
                 .Include(c => c.Province)
                 .FirstOrDefaultAsync(c => c.Id == city.Id, cancellationToken);
@@ -199,7 +199,7 @@ public class CityService : ICityService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var cities = await query
                 .Include(c => c.Province)
                 .Where(c => c.ProvinceId == provinceId)

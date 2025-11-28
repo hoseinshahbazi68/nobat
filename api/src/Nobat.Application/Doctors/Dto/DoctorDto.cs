@@ -195,6 +195,7 @@ public class DoctorListDto
     /// تاریخ ایجاد
     /// </summary>
     public DateTime CreatedAt { get; set; }
+    public int? UserId { get; set; }
 }
 
 

@@ -75,7 +75,7 @@ export interface CreateAppointmentDialogData {
                   ساعت شروع
                 </label>
                 <div class="time-input-wrapper">
-                  <input type="time" formControlName="startTime" class="time-input" required>
+                  <input type="text" formControlName="startTime" class="time-input" appTimeMask placeholder="00:00" maxlength="5" required>
                 </div>
                 <span class="error" *ngIf="appointmentForm.get('startTime')?.hasError('required') && appointmentForm.get('startTime')?.touched">
                   لطفا ساعت شروع را وارد نمایید
@@ -88,7 +88,7 @@ export interface CreateAppointmentDialogData {
                   ساعت پایان
                 </label>
                 <div class="time-input-wrapper">
-                  <input type="time" formControlName="endTime" class="time-input" required>
+                  <input type="text" formControlName="endTime" class="time-input" appTimeMask placeholder="00:00" maxlength="5" required>
                 </div>
                 <span class="error" *ngIf="appointmentForm.get('endTime')?.hasError('required') && appointmentForm.get('endTime')?.touched">
                   لطفا ساعت پایان را وارد نمایید
@@ -285,19 +285,27 @@ export interface CreateAppointmentDialogData {
 
     .time-input {
       width: 100%;
-      padding: 12px 40px 12px 14px;
+      padding: 12px 14px;
       border: 2px solid #dee2e6;
       border-radius: 8px;
       font-size: 0.95rem;
       font-family: 'Vazirmatn', sans-serif;
       background: white;
       transition: all 0.3s ease;
+      direction: ltr;
+      text-align: center;
+      letter-spacing: 2px;
     }
 
     .time-input:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .time-input::placeholder {
+      color: #adb5bd;
+      letter-spacing: normal;
     }
 
     .number-input-wrapper {

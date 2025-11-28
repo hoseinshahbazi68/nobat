@@ -129,7 +129,7 @@ public class UserService : IUserService
     {
         try
         {
-            var query = await _userRepository.GetQueryableAsync(cancellationToken);
+            var query = await _userRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             var totalCount = query.Count();
             var filteredQuery = _sieveProcessor.Apply(sieveModel, query);
@@ -630,6 +630,52 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error changing password");
+            return ApiResponse.Error("خطا در تغییر رمز عبور", ex);
+        }
+    }
+
+    /// <summary>
+    /// تغییر رمز عبور کاربر توسط ادمین (بدون نیاز به رمز عبور فعلی)
+    /// </summary>
+    /// <param name="userId">شناسه کاربر</param>
+    /// <param name="resetPasswordDto">اطلاعات تغییر رمز عبور</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>نتیجه عملیات</returns>
+    public async Task<ApiResponse> ResetUserPasswordAsync(int userId, ResetUserPasswordDto resetPasswordDto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
+
+            if (user == null)
+            {
+                return ApiResponse.Error("کاربر یافت نشد", 404);
+            }
+
+            // اعتبارسنجی رمز عبور جدید
+            if (string.IsNullOrWhiteSpace(resetPasswordDto.NewPassword))
+            {
+                return ApiResponse.Error("رمز عبور جدید نمی‌تواند خالی باشد", 400);
+            }
+
+            if (resetPasswordDto.NewPassword.Length < 6)
+            {
+                return ApiResponse.Error("رمز عبور باید حداقل ۶ کاراکتر باشد", 400);
+            }
+
+            // به‌روزرسانی رمز عبور
+            user.PasswordHash = HashPassword(resetPasswordDto.NewPassword);
+
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Password reset by admin for userId: {UserId}", userId);
+
+            return ApiResponse.Success("رمز عبور کاربر با موفقیت تغییر کرد");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting user password");
             return ApiResponse.Error("خطا در تغییر رمز عبور", ex);
         }
     }

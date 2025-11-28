@@ -13,6 +13,10 @@ import { User } from '../../models/user.model';
         <span class="icon">🏢</span>
         <span>مراکز</span>
       </button>
+      <button class="menu-item" (click)="onAction('change-password')">
+        <span class="icon">🔒</span>
+        <span>تغییر کلمه عبور</span>
+      </button>
       <button class="menu-item delete" (click)="onAction('delete')">
         <span class="icon">🗑️</span>
         <span>حذف</span>

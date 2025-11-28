@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { City } from '../../models/city.model';
 import { UpdateProfileRequest, User, Gender } from '../../models/user.model';
 import { AuthService } from '../../services/auth.service';
@@ -14,7 +16,7 @@ import { environment } from '../../../environments/environment';
   templateUrl: './profile.component.html',
   styleUrls: ['./profile.component.scss']
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent implements OnInit, OnDestroy {
   profileForm: FormGroup;
   user: User | null = null;
   isLoading = false;
@@ -23,6 +25,8 @@ export class ProfileComponent implements OnInit {
   filteredCities: City[] = [];
   citySearchText: string = '';
   showCityDropdown: boolean = false;
+  isSearchingCities: boolean = false;
+  private citySearchSubject = new Subject<string>();
   profilePictureUrl: string | null = null;
   selectedFile: File | null = null;
   genderOptions = [
@@ -50,34 +54,55 @@ export class ProfileComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadAllCities();
+    this.setupCitySearch();
     this.loadUserProfile();
   }
 
-  loadAllCities() {
-    this.cityService.getAll({ page: 1, pageSize: 1000 }).subscribe({
+  setupCitySearch() {
+    this.citySearchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(searchTerm => {
+        this.isSearchingCities = true;
+        const searchText = searchTerm?.trim() || '';
+        if (searchText) {
+          return this.cityService.getAll({
+            page: 1,
+            pageSize: 100,
+            filters: `name.Contains("${searchText}") || provinceName.Contains("${searchText}")`
+          }).pipe(
+            catchError(error => {
+              this.isSearchingCities = false;
+              console.error('خطا در جستجوی شهرها:', error);
+              return [];
+            })
+          );
+        } else {
+          return this.cityService.getAll({ page: 1, pageSize: 100 }).pipe(
+            catchError(error => {
+              this.isSearchingCities = false;
+              console.error('خطا در بارگذاری شهرها:', error);
+              return [];
+            })
+          );
+        }
+      })
+    ).subscribe({
       next: (result) => {
-        this.cities = result.items;
-        this.filteredCities = this.cities;
-      },
-      error: (error) => {
-        console.error('خطا در بارگذاری شهرها:', error);
-        this.cities = [];
-        this.filteredCities = [];
+        if (result && 'items' in result) {
+          this.filteredCities = result.items || [];
+        } else if (Array.isArray(result)) {
+          this.filteredCities = result;
+        } else {
+          this.filteredCities = [];
+        }
+        this.isSearchingCities = false;
       }
     });
   }
 
   onCitySearch() {
-    const searchText = this.citySearchText.toLowerCase().trim();
-    if (!searchText) {
-      this.filteredCities = this.cities;
-    } else {
-      this.filteredCities = this.cities.filter(city =>
-        city.name.toLowerCase().includes(searchText) ||
-        (city.provinceName && city.provinceName.toLowerCase().includes(searchText))
-      );
-    }
+    this.citySearchSubject.next(this.citySearchText);
     this.showCityDropdown = true;
   }
 
@@ -89,8 +114,8 @@ export class ProfileComponent implements OnInit {
 
   onCityInputFocus() {
     this.showCityDropdown = true;
-    if (!this.citySearchText) {
-      this.filteredCities = this.cities;
+    if (!this.citySearchText || !this.citySearchText.trim()) {
+      this.citySearchSubject.next('');
     }
   }
 
@@ -371,6 +396,10 @@ export class ProfileComponent implements OnInit {
     if (img) {
       img.src = this.getDefaultProfilePicture();
     }
+  }
+
+  ngOnDestroy() {
+    this.citySearchSubject.complete();
   }
 
 }

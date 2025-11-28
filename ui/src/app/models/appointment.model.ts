@@ -1,7 +1,5 @@
 export interface Appointment {
   id?: number;
-  doctorId: number;
-  doctor?: any;
   doctorScheduleId: number;
   doctorSchedule?: any;
   userId?: number;
@@ -23,7 +21,6 @@ export enum AppointmentStatus {
 }
 
 export interface CreateAppointmentRequest {
-  doctorId: number;
   doctorScheduleId: number;
   appointmentDateTime: string;
   expireDateTime: string;

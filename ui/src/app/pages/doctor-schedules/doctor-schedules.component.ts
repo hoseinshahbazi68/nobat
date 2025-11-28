@@ -9,6 +9,7 @@ import { DoctorService } from '../../services/doctor.service';
 import { ShiftService } from '../../services/shift.service';
 import { ServiceService } from '../../services/service.service';
 import { AppointmentService } from '../../services/appointment.service';
+import { ClinicService } from '../../services/clinic.service';
 import { DoctorScheduleDialogComponent, DoctorScheduleDialogData } from './doctor-schedule-dialog.component';
 import { CreateAppointmentDialogComponent, CreateAppointmentDialogData } from './create-appointment-dialog.component';
 import { DoctorSchedule, DayOfWeek } from '../../models/doctor-schedule.model';
@@ -43,6 +44,7 @@ export class DoctorSchedulesComponent implements OnInit {
     private shiftService: ShiftService,
     private serviceService: ServiceService,
     private appointmentService: AppointmentService,
+    private clinicService: ClinicService,
     public persianDateService: PersianDateService
   ) {}
 
@@ -173,8 +175,21 @@ export class DoctorSchedulesComponent implements OnInit {
   }
 
   saveSchedule(scheduleData: DoctorSchedule, id?: number) {
+    // خواندن شناسه کلینیک مستقیماً از کوکی
+    const clinicId = this.clinicService.getSelectedClinicIdFromCookie();
+    if (!clinicId) {
+      this.snackbarService.error('لطفاً ابتدا کلینیک را از منوی بالا انتخاب کنید', 'بستن', 5000);
+      return;
+    }
+
+    // افزودن clinicId به داده‌های برنامه
+    const scheduleWithClinic = {
+      ...scheduleData,
+      clinicId: clinicId
+    };
+
     if (id) {
-      const updateData = { ...scheduleData, id };
+      const updateData = { ...scheduleWithClinic, id };
       this.doctorScheduleService.update(updateData).subscribe({
         next: (updatedSchedule) => {
           const index = this.schedules.findIndex(s => s.id === id);
@@ -191,7 +206,7 @@ export class DoctorSchedulesComponent implements OnInit {
         }
       });
     } else {
-      this.doctorScheduleService.create(scheduleData).subscribe({
+      this.doctorScheduleService.create(scheduleWithClinic).subscribe({
         next: (newSchedule) => {
           this.schedules = [...this.schedules, newSchedule];
           this.filteredSchedules = [...this.schedules];
@@ -267,6 +282,13 @@ export class DoctorSchedulesComponent implements OnInit {
   createAppointment(date: Date, appointmentData: any) {
     if (!this.selectedDoctorId) return;
 
+    // خواندن شناسه کلینیک مستقیماً از کوکی
+    const clinicId = this.clinicService.getSelectedClinicIdFromCookie();
+    if (!clinicId) {
+      this.snackbarService.error('لطفاً ابتدا کلینیک را از منوی بالا انتخاب کنید', 'بستن', 5000);
+      return;
+    }
+
     // محاسبه روز هفته از تاریخ
     const dayOfWeek = this.getDayOfWeekFromDate(date);
 
@@ -278,7 +300,8 @@ export class DoctorSchedulesComponent implements OnInit {
       serviceId: appointmentData.serviceId,
       startTime: appointmentData.startTime,
       endTime: appointmentData.endTime,
-      count: appointmentData.count || 1
+      count: appointmentData.count || 1,
+      clinicId: clinicId
     };
 
     // بررسی اینکه آیا برنامه قبلی برای این روز و شیفت وجود دارد

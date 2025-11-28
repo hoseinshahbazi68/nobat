@@ -69,7 +69,7 @@ public class MedicalConditionService : IMedicalConditionService
     {
         try
         {
-            var query = await _medicalConditionRepository.GetQueryableAsync(cancellationToken);
+            var query = await _medicalConditionRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             var totalCount = query.Count();
             var filteredQuery = _sieveProcessor.Apply(sieveModel, query);

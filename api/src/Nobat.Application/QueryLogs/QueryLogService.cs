@@ -38,7 +38,7 @@ public class QueryLogService : IQueryLogService
     {
         try
         {
-            var queryable = await _repository.GetQueryableAsync(cancellationToken);
+            var queryable = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var queryLog = await queryable
                 .Include(q => q.User)
                 .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);

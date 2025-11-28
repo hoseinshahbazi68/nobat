@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { ImageCropperComponent, ImageCropperData } from '../../components/image-cropper/image-cropper.component';
 import { City } from '../../models/city.model';
@@ -65,6 +66,10 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
     filteredCities: City[] = [];
     citySearchText: string = '';
     showCityDropdown: boolean = false;
+    isSearchingCities: boolean = false;
+    private citySearchSubject = new Subject<string>();
+    private medicalConditionSearchSubject = new Subject<string>();
+    isSearchingMedicalConditions: boolean = false;
     genderOptions = [
         { value: Gender.Male, label: 'مرد' },
         { value: Gender.Female, label: 'زن' }
@@ -136,7 +141,7 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
             firstName: [{ value: '', disabled: true }],
             lastName: [{ value: '', disabled: true }],
             phoneNumber: [{ value: '', disabled: true }],
-            userId: [null, Validators.required],
+            userId: [null], // validation در saveDoctor انجام می‌شود
             clinicId: [null],
             cityId: [null],
             gender: [null],
@@ -147,8 +152,8 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
     ngOnInit() {
         this.loadSpecialties();
         this.loadClinics();
-        this.loadMedicalConditions();
-        this.loadAllCities();
+        this.setupCitySearch();
+        this.setupMedicalConditionSearch();
 
         const id = this.route.snapshot.paramMap.get('id');
         if (id) {
@@ -165,35 +170,53 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
         }
     }
 
-    loadAllCities() {
-        this.cityService.getAll({ page: 1, pageSize: 1000 }).subscribe({
-            next: (result) => {
-                this.cities = result.items || [];
-                this.filteredCities = [...this.cities];
-                // اگر dropdown باید نمایش داده شود، آن را نمایش بده
-                if (this.showCityDropdown || document.activeElement?.classList.contains('city-search-input')) {
-                    this.showCityDropdown = true;
+    setupCitySearch() {
+        this.citySearchSubject.pipe(
+            debounceTime(300),
+            distinctUntilChanged(),
+            switchMap(searchTerm => {
+                this.isSearchingCities = true;
+                const searchText = searchTerm?.trim() || '';
+                if (searchText) {
+                    // جستجو از سرور با استفاده از filters
+                    return this.cityService.getAll({
+                        page: 1,
+                        pageSize: 100,
+                        filters: `name.Contains("${searchText}") || provinceName.Contains("${searchText}")`
+                    }).pipe(
+                        catchError(error => {
+                            this.isSearchingCities = false;
+                            console.error('خطا در جستجوی شهرها:', error);
+                            return [];
+                        })
+                    );
+                } else {
+                    // اگر جستجو خالی است، لیست اولیه را برگردان
+                    return this.cityService.getAll({ page: 1, pageSize: 100 }).pipe(
+                        catchError(error => {
+                            this.isSearchingCities = false;
+                            console.error('خطا در بارگذاری شهرها:', error);
+                            return [];
+                        })
+                    );
                 }
-                console.log('شهرها لود شدند:', this.cities.length, 'شهر');
-            },
-            error: (error) => {
-                console.error('خطا در بارگذاری شهرها:', error);
-                this.cities = [];
-                this.filteredCities = [];
+            })
+        ).subscribe({
+            next: (result) => {
+                if (result && 'items' in result) {
+                    this.filteredCities = result.items || [];
+                } else if (Array.isArray(result)) {
+                    this.filteredCities = result;
+                } else {
+                    this.filteredCities = [];
+                }
+                this.isSearchingCities = false;
             }
         });
     }
 
     onCitySearch() {
-        const searchText = this.citySearchText.toLowerCase().trim();
-        if (!searchText) {
-            this.filteredCities = [...this.cities];
-        } else {
-            this.filteredCities = this.cities.filter(city =>
-                city.name.toLowerCase().includes(searchText) ||
-                (city.provinceName && city.provinceName.toLowerCase().includes(searchText))
-            );
-        }
+        this.citySearchSubject.next(this.citySearchText);
         this.showCityDropdown = true;
     }
 
@@ -204,17 +227,11 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
     }
 
     onCityInputFocus() {
-        // همیشه filteredCities را به cities تنظیم کن تا همه شهرها نمایش داده شوند
-        if (this.cities.length > 0) {
-            this.filteredCities = [...this.cities];
-            this.showCityDropdown = true;
-        } else {
-            // اگر شهرها لود نشده‌اند، dropdown را نمایش بده (حتی اگر خالی باشد)
-            this.showCityDropdown = true;
-            // دوباره لود کن
-            this.loadAllCities();
+        this.showCityDropdown = true;
+        // اگر جستجو خالی است، لیست اولیه را بارگذاری کن
+        if (!this.citySearchText || !this.citySearchText.trim()) {
+            this.citySearchSubject.next('');
         }
-        console.log('onCityInputFocus - cities:', this.cities.length, 'filteredCities:', this.filteredCities.length, 'showCityDropdown:', this.showCityDropdown);
     }
 
     onCityInputBlur() {
@@ -245,34 +262,77 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
         });
     }
 
-    loadMedicalConditions() {
-        this.medicalConditionService.getAll({ page: 1, pageSize: 1000 }).subscribe({
-            next: (result) => {
-                this.availableMedicalConditions = result.items;
-                this.filteredMedicalConditions = [...this.availableMedicalConditions];
-                // پس از بارگذاری اولیه، اگر تخصص‌هایی انتخاب شده‌اند، لیست را فیلتر کن
-                if (this.selectedSpecialties.length > 0 &&
-                    this.selectedSpecialties.some(s => s.specialtyId && s.specialtyId > 0)) {
-                    this.updateAvailableMedicalConditions();
+    setupMedicalConditionSearch() {
+        this.medicalConditionSearchSubject.pipe(
+            debounceTime(300),
+            distinctUntilChanged(),
+            switchMap(searchTerm => {
+                this.isSearchingMedicalConditions = true;
+                const searchQuery = searchTerm?.trim() || '';
+                if (searchQuery) {
+                    return this.medicalConditionService.search(searchQuery).pipe(
+                        catchError(error => {
+                            this.isSearchingMedicalConditions = false;
+                            console.error('خطا در جستجوی علائم پزشکی:', error);
+                            return [];
+                        })
+                    );
+                } else {
+                    return this.medicalConditionService.getAll({ page: 1, pageSize: 1000 }).pipe(
+                        catchError(error => {
+                            this.isSearchingMedicalConditions = false;
+                            console.error('خطا در بارگذاری علائم پزشکی:', error);
+                            return [];
+                        }),
+                        switchMap(result => {
+                            return [result.items || []];
+                        })
+                    );
                 }
-            },
-            error: (error) => {
-                console.error('خطا در بارگذاری علائم پزشکی:', error);
+            })
+        ).subscribe({
+            next: (conditions) => {
+                // فیلتر کردن علائم بر اساس تخصص‌های انتخاب شده
+                const selectedSpecialtyIds = this.selectedSpecialties
+                    .map(s => s.specialtyId)
+                    .filter(id => id && id > 0);
+
+                if (selectedSpecialtyIds.length > 0) {
+                    // اگر تخصص‌هایی انتخاب شده، فقط علائم مرتبط با آن‌ها را نمایش بده
+                    // اما علائمی که کاربر دستی انتخاب کرده را هم نگه دار
+                    const manuallySelectedConditions = conditions.filter(c =>
+                        c.id != null && this.selectedMedicalConditions.includes(c.id)
+                    );
+                    const specialtyRelatedConditions = conditions.filter(c =>
+                        c.id != null && this.conditionsFromSpecialties.has(c.id)
+                    );
+                    this.filteredMedicalConditions = [
+                        ...specialtyRelatedConditions,
+                        ...manuallySelectedConditions.filter(c =>
+                            !specialtyRelatedConditions.find(sc => sc.id === c.id)
+                        )
+                    ];
+                } else {
+                    this.filteredMedicalConditions = conditions;
+                }
+                this.availableMedicalConditions = conditions;
+                this.isSearchingMedicalConditions = false;
             }
         });
     }
 
-    filterMedicalConditions() {
-        const searchTerm = this.medicalConditionSearch.toLowerCase().trim();
-        if (!searchTerm) {
-            this.filteredMedicalConditions = [...this.availableMedicalConditions];
-            return;
+    loadMedicalConditions() {
+        // بارگذاری اولیه - اگر تخصص‌هایی انتخاب شده‌اند، لیست را فیلتر کن
+        if (this.selectedSpecialties.length > 0 &&
+            this.selectedSpecialties.some(s => s.specialtyId && s.specialtyId > 0)) {
+            this.updateAvailableMedicalConditions();
+        } else {
+            this.medicalConditionSearchSubject.next('');
         }
+    }
 
-        this.filteredMedicalConditions = this.availableMedicalConditions.filter(condition =>
-            condition.name.toLowerCase().includes(searchTerm) ||
-            (condition.description && condition.description.toLowerCase().includes(searchTerm))
-        );
+    filterMedicalConditions() {
+        this.medicalConditionSearchSubject.next(this.medicalConditionSearch);
     }
 
     isConditionFromSpecialty(conditionId: number): boolean {
@@ -351,20 +411,16 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
                     this.userNotFound = true;
                     // پاک کردن عکس پروفایل
                     this.profilePicturePreview = null;
+                    // فقط userId را null کن و فیلدها را فعال کن، اما مقادیر قبلی را نگه دار
                     this.doctorForm.patchValue({
-                        userId: null,
-                        firstName: '',
-                        lastName: '',
-                        phoneNumber: '',
-                        cityId: null,
-                        gender: null,
-                        birthDate: null
+                        userId: null
+                        // مقادیر firstName، lastName، phoneNumber و غیره را حفظ می‌کنیم
                     });
                     // فیلدها را فعال کن
                     this.doctorForm.get('firstName')?.enable();
                     this.doctorForm.get('lastName')?.enable();
                     this.doctorForm.get('phoneNumber')?.enable();
-                    this.citySearchText = '';
+                    // شهر را پاک نکن، فقط dropdown را ببند
                     this.showCityDropdown = false;
                 } else {
                     // خطای دیگر
@@ -859,38 +915,63 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
     }
 
     isFormValidForSubmit(): boolean {
-        // در حالت ویرایش، دکمه همیشه فعال است
-        if (this.isEditMode) {
-            return true;
-        }
-
-        // در حالت جدید، بررسی کن که فرم معتبر است و تخصص‌ها انتخاب شده‌اند
-        return this.doctorForm.valid && !this.hasInvalidSpecialties() &&
-            !!(this.userSearchValue && this.userSearchValue.trim().length > 0);
+        // دکمه همیشه فعال است تا کاربر بتواند خطاها را ببیند
+        return true;
     }
 
     saveDoctor() {
-        // Mark userId as touched to show validation error
-        this.doctorForm.get('userId')?.markAsTouched();
+        // لیست خطاها برای نمایش به کاربر
+        const errors: string[] = [];
 
-        // بررسی اینکه کد ملی وارد شده باشد (فقط در حالت جدید)
-        // در حالت ویرایش، اگر userId وجود دارد، نیازی به بررسی کد ملی نیست
-        if (!this.isEditMode && (!this.userSearchValue || !this.userSearchValue.trim())) {
-            this.snackbarService.error('لطفاً کد ملی کاربر را وارد کنید', 'بستن', 3000);
-            return;
+        // Mark all fields as touched to show validation errors
+        this.doctorForm.markAllAsTouched();
+        Object.keys(this.doctorForm.controls).forEach(key => {
+            this.doctorForm.get(key)?.markAsTouched();
+        });
+
+        // دریافت مقادیر فرم - استفاده از getRawValue برای فیلدهای disabled
+        const formValue = this.doctorForm.getRawValue();
+        const medicalCode = formValue.medicalCode?.trim();
+        const userId = formValue.userId;
+        const firstName = formValue.firstName?.trim();
+        const lastName = formValue.lastName?.trim();
+        const phoneNumber = formValue.phoneNumber?.trim();
+
+        // بررسی کد نظام پزشکی
+        if (!medicalCode) {
+            errors.push('کد نظام پزشکی الزامی است');
         }
 
-        // در حالت ویرایش، اگر userId وجود دارد، نیازی به بررسی کد ملی نیست
-        const userId = this.doctorForm.get('userId')?.value;
-        // در حالت ویرایش، اگر userId وجود ندارد و کد ملی هم خالی است، خطا بده
-        // اما اگر userId وجود دارد، نیازی به بررسی کد ملی نیست
-        if (this.isEditMode && !userId && (!this.userSearchValue || !this.userSearchValue.trim())) {
-            this.snackbarService.error('لطفاً کد ملی کاربر را وارد کنید', 'بستن', 3000);
-            return;
+        // بررسی کد ملی
+        if (!this.userSearchValue || !this.userSearchValue.trim()) {
+            errors.push('کد ملی الزامی است');
         }
 
+        // بررسی تخصص‌ها
         if (this.selectedSpecialties.length === 0) {
-            this.snackbarService.error('لطفا حداقل یک تخصص را انتخاب کنید', 'بستن', 3000);
+            errors.push('حداقل یک تخصص باید انتخاب شود');
+        } else if (this.hasInvalidSpecialties()) {
+            errors.push('لطفاً تمام تخصص‌های انتخاب شده را تکمیل کنید');
+        }
+
+        // اگر کاربر پیدا نشده (userId null است)، باید اطلاعات کاربر وارد شده باشد
+        if (!userId) {
+            if (!firstName) {
+                errors.push('نام الزامی است');
+            }
+            if (!lastName) {
+                errors.push('نام خانوادگی الزامی است');
+            }
+            if (!phoneNumber) {
+                errors.push('شماره موبایل الزامی است');
+            }
+        }
+
+        // اگر خطایی وجود دارد، نمایش بده و متوقف شو
+        if (errors.length > 0) {
+            // فرمت کردن خطاها با شماره برای خوانایی بهتر
+            const errorMessage = errors.map((error, index) => `${index + 1}. ${error}`).join('\n');
+            this.snackbarService.error(errorMessage, 'بستن', 5000);
             return;
         }
 
@@ -900,8 +981,7 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
             : this.doctorForm.valid && !this.hasInvalidSpecialties();
 
         if (isFormValid && this.selectedSpecialties.length > 0) {
-            // استفاده از getRawValue() برای دریافت مقادیر فیلدهای disabled هم
-            const formValue = this.doctorForm.getRawValue();
+            // استفاده از formValue که قبلاً تعریف شده
             const specialtyIds = this.selectedSpecialties
                 .filter(s => s.specialtyId > 0)
                 .map(s => s.specialtyId);
@@ -981,11 +1061,9 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
                 }
             }
         } else {
-            if (this.selectedSpecialties.length === 0) {
-                this.snackbarService.error('لطفا حداقل یک تخصص را انتخاب کنید', 'بستن', 3000);
-            } else {
-                this.snackbarService.error('لطفاً تمام فیلدهای الزامی را پر کنید', 'بستن', 3000);
-            }
+            // این بخش نباید اجرا شود چون خطاها در ابتدای متد بررسی می‌شوند
+            // اما به عنوان fail-safe نگه داشته می‌شود
+            this.snackbarService.error('لطفاً تمام فیلدهای الزامی را پر کنید', 'بستن', 3000);
         }
     }
 
@@ -1037,5 +1115,7 @@ export class DoctorFormComponent implements OnInit, OnDestroy {
         if (this.clinicSubscription) {
             this.clinicSubscription.unsubscribe();
         }
+        this.citySearchSubject.complete();
+        this.medicalConditionSearchSubject.complete();
     }
 }

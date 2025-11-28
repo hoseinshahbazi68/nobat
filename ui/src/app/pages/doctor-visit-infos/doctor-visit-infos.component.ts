@@ -1,10 +1,9 @@
 import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { DialogService } from '../../services/dialog.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { DoctorVisitInfoService } from '../../services/doctor-visit-info.service';
 import { DoctorVisitInfo } from '../../models/doctor-visit-info.model';
-import { DoctorVisitInfoDialogComponent } from './doctor-visit-info-dialog.component';
 import { DoctorService } from '../../services/doctor.service';
 import { Doctor } from '../../models/doctor.model';
 
@@ -14,210 +13,180 @@ import { Doctor } from '../../models/doctor.model';
   styleUrls: ['./doctor-visit-infos.component.scss']
 })
 export class DoctorVisitInfosComponent implements OnInit {
-  displayedColumns: string[] = ['id', 'doctorName', 'medicalCode', 'about', 'clinicAddress', 'clinicPhone', 'officeHours', 'actions'];
-  visitInfos: DoctorVisitInfo[] = [];
-  filteredVisitInfos: DoctorVisitInfo[] = [];
-  filterValue: string = '';
+  visitInfoForm: FormGroup;
+  visitInfo: DoctorVisitInfo | null = null;
+  doctor: Doctor | null = null;
+  doctorId: number | null = null;
   isLoading = false;
-  doctors: Doctor[] = [];
-
-  // Pagination properties
-  currentPage: number = 1;
-  pageSize: number = 10;
-  totalCount: number = 0;
-  totalPages: number = 0;
-
-  selectedDoctorId: number | null = null;
+  isEditMode = true; // به صورت پیش‌فرض در حالت ویرایش
+  isSaving = false;
 
   constructor(
-    private dialogService: DialogService,
+    private fb: FormBuilder,
     private snackbarService: SnackbarService,
     private visitInfoService: DoctorVisitInfoService,
     private doctorService: DoctorService,
     private route: ActivatedRoute,
     private router: Router
-  ) { }
+  ) {
+    this.visitInfoForm = this.fb.group({
+      about: [''],
+      clinicAddress: [''],
+      clinicPhone: [''],
+      officeHours: ['']
+    });
+  }
 
   ngOnInit() {
-    // Check if doctorId is provided in query params
     this.route.queryParams.subscribe((params: any) => {
       if (params['doctorId']) {
-        this.selectedDoctorId = +params['doctorId'];
-      }
-    });
-    this.loadDoctors();
-    this.loadVisitInfos();
-  }
-
-  loadDoctors() {
-    this.doctorService.getAll({ page: 1, pageSize: 1000 }).subscribe({
-      next: (result) => {
-        this.doctors = result.items.map((d: any) => ({
-          id: d.id,
-          medicalCode: d.medicalCode,
-          firstName: d.firstName,
-          lastName: d.lastName,
-          nationalCode: d.nationalCode
-        }));
-      },
-      error: (error) => {
-        console.error('Error loading doctors:', error);
-      }
-    });
-  }
-
-  loadVisitInfos() {
-    this.isLoading = true;
-    const params: any = { page: this.currentPage, pageSize: this.pageSize };
-
-    // Add filter if filterValue exists
-    if (this.filterValue && this.filterValue.trim()) {
-      params.filters = `doctorName@=*${this.filterValue.trim()}*`;
-    }
-
-    // Add doctorId filter if selected
-    if (this.selectedDoctorId) {
-      if (params.filters) {
-        params.filters += `,doctorId==${this.selectedDoctorId}`;
+        this.doctorId = +params['doctorId'];
+        this.loadDoctor();
+        this.loadVisitInfo();
       } else {
-        params.filters = `doctorId==${this.selectedDoctorId}`;
+        this.snackbarService.error('شناسه پزشک مشخص نشده است', 'بستن', 3000);
+        this.router.navigate(['/panel/doctors']);
       }
-    }
+    });
+  }
 
-    this.visitInfoService.getAll(params).subscribe({
+  loadDoctor() {
+    if (!this.doctorId) return;
+
+    this.doctorService.getById(this.doctorId).subscribe({
+      next: (doctor) => {
+        this.doctor = doctor;
+      },
+      error: (error) => {
+        console.error('Error loading doctor:', error);
+        this.snackbarService.error('خطا در بارگذاری اطلاعات پزشک', 'بستن', 3000);
+      }
+    });
+  }
+
+  loadVisitInfo() {
+    if (!this.doctorId) return;
+
+    this.isLoading = true;
+    this.visitInfoService.getByDoctorId(this.doctorId).subscribe({
       next: (result) => {
-        this.visitInfos = result.items;
-        this.filteredVisitInfos = [...this.visitInfos];
-        this.totalCount = result.totalCount;
-        this.totalPages = result.totalPages;
-        this.currentPage = result.page;
+        this.visitInfo = result;
+        this.visitInfoForm.patchValue({
+          about: result.about || '',
+          clinicAddress: result.clinicAddress || '',
+          clinicPhone: result.clinicPhone || '',
+          officeHours: result.officeHours || ''
+        });
+        this.isEditMode = true; // همیشه در حالت ویرایش
         this.isLoading = false;
       },
       error: (error) => {
-        const errorMessage = error?.message || error?.error?.message || 'خطا در بارگذاری اطلاعات ویزیت';
-        this.snackbarService.error(errorMessage, 'بستن', 5000);
+        // اگر اطلاعات ویزیت وجود نداشت، فرم را خالی نگه داریم
+        if (error?.status === 404) {
+          this.visitInfo = null;
+          this.visitInfoForm.reset();
+          this.isEditMode = true; // حالت ایجاد
+        } else {
+          const errorMessage = error?.message || error?.error?.message || 'خطا در بارگذاری اطلاعات ویزیت';
+          this.snackbarService.error(errorMessage, 'بستن', 5000);
+        }
         this.isLoading = false;
       }
     });
   }
 
-  onPageChange(page: number) {
-    this.currentPage = page;
-    this.loadVisitInfos();
-  }
-
-  onPageSizeChange(pageSize: number) {
-    this.pageSize = pageSize;
-    this.currentPage = 1;
-    this.loadVisitInfos();
-  }
-
-  openAddDialog() {
-    this.dialogService.open(DoctorVisitInfoDialogComponent, {
-      width: '700px',
-      maxWidth: '90vw',
-      data: { visitInfo: null, doctors: this.doctors }
-    }).subscribe(result => {
-      if (result && typeof result === 'object' && result.doctorId) {
-        this.saveVisitInfo(result);
-      }
-    });
-  }
-
-  editVisitInfo(visitInfo: DoctorVisitInfo) {
-    this.dialogService.open(DoctorVisitInfoDialogComponent, {
-      width: '700px',
-      maxWidth: '90vw',
-      data: { visitInfo, doctors: this.doctors }
-    }).subscribe(result => {
-      if (result) {
-        this.saveVisitInfo(result, visitInfo.id);
-      }
-    });
-  }
-
-  deleteVisitInfo(visitInfo: DoctorVisitInfo) {
-    if (visitInfo.id) {
-      this.dialogService.confirm({
-        title: 'حذف اطلاعات ویزیت',
-        message: `آیا از حذف اطلاعات ویزیت پزشک "${visitInfo.doctorName || visitInfo.medicalCode}" اطمینان دارید؟`,
-        confirmText: 'حذف',
-        cancelText: 'انصراف',
-        type: 'danger'
-      }).subscribe(result => {
-        if (result) {
-          this.visitInfoService.delete(visitInfo.id).subscribe({
-            next: () => {
-              this.visitInfos = this.visitInfos.filter(vi => vi.id !== visitInfo.id);
-              this.filteredVisitInfos = [...this.visitInfos];
-              this.applyFilter();
-              this.snackbarService.success('اطلاعات ویزیت با موفقیت حذف شد', 'بستن', 3000);
-            },
-            error: (error) => {
-              const errorMessage = error?.message || error?.error?.message || 'خطا در حذف اطلاعات ویزیت';
-              this.snackbarService.error(errorMessage, 'بستن', 5000);
-            }
-          });
-        }
+  toggleEditMode() {
+    this.isEditMode = !this.isEditMode;
+    if (!this.isEditMode && this.visitInfo) {
+      // اگر از حالت ویرایش خارج شدیم، مقادیر را به حالت اولیه برگردانیم
+      this.visitInfoForm.patchValue({
+        about: this.visitInfo.about || '',
+        clinicAddress: this.visitInfo.clinicAddress || '',
+        clinicPhone: this.visitInfo.clinicPhone || '',
+        officeHours: this.visitInfo.officeHours || ''
       });
     }
   }
 
-  saveVisitInfo(visitInfoData: any, id?: number) {
-    if (!visitInfoData || !visitInfoData.doctorId) {
-      this.snackbarService.error('لطفا پزشک را انتخاب کنید', 'بستن', 3000);
+  saveVisitInfo() {
+    if (!this.doctorId) {
+      this.snackbarService.error('شناسه پزشک مشخص نشده است', 'بستن', 3000);
       return;
     }
 
-    if (id) {
-      const updateData = { ...visitInfoData, id };
+    this.visitInfoForm.markAllAsTouched();
+    if (this.visitInfoForm.invalid) {
+      return;
+    }
+
+    this.isSaving = true;
+    const formValue = this.visitInfoForm.value;
+
+    // تبدیل رشته‌های خالی به undefined
+    Object.keys(formValue).forEach(key => {
+      if (formValue[key] === '') {
+        formValue[key] = undefined;
+      }
+    });
+
+    if (this.visitInfo?.id) {
+      // به‌روزرسانی
+      const updateData = { ...formValue, id: this.visitInfo.id };
       this.visitInfoService.update(updateData).subscribe({
         next: (updatedVisitInfo) => {
-          const index = this.visitInfos.findIndex(vi => vi.id === id);
-          if (index !== -1) {
-            this.visitInfos[index] = updatedVisitInfo;
-            this.filteredVisitInfos = [...this.visitInfos];
-            this.applyFilter();
-          } else {
-            this.loadVisitInfos();
-          }
-          this.snackbarService.success('اطلاعات ویزیت با موفقیت ویرایش شد', 'بستن', 3000);
+          this.visitInfo = updatedVisitInfo;
+          this.isEditMode = true; // بعد از ذخیره هم در حالت ویرایش بماند
+          this.isSaving = false;
+          this.snackbarService.success('اطلاعات ویزیت با موفقیت به‌روزرسانی شد', 'بستن', 3000);
         },
         error: (error) => {
-          const errorMessage = error?.error?.message || error?.message || 'خطا در ویرایش اطلاعات ویزیت';
+          const errorMessage = error?.error?.message || error?.message || 'خطا در به‌روزرسانی اطلاعات ویزیت';
           this.snackbarService.error(errorMessage, 'بستن', 5000);
+          this.isSaving = false;
         }
       });
     } else {
-      this.visitInfoService.create(visitInfoData).subscribe({
+      // ایجاد جدید
+      const createData = { ...formValue, doctorId: this.doctorId };
+      this.visitInfoService.create(createData).subscribe({
         next: (newVisitInfo) => {
-          this.visitInfos = [...this.visitInfos, newVisitInfo];
-          this.filteredVisitInfos = [...this.visitInfos];
-          this.applyFilter();
-          this.snackbarService.success('اطلاعات ویزیت با موفقیت اضافه شد', 'بستن', 3000);
+          this.visitInfo = newVisitInfo;
+          this.isEditMode = true; // بعد از ذخیره هم در حالت ویرایش بماند
+          this.isSaving = false;
+          this.snackbarService.success('اطلاعات ویزیت با موفقیت ایجاد شد', 'بستن', 3000);
         },
         error: (error) => {
-          const errorMessage = error?.error?.message || error?.message || 'خطا در افزودن اطلاعات ویزیت';
+          const errorMessage = error?.error?.message || error?.message || 'خطا در ایجاد اطلاعات ویزیت';
           this.snackbarService.error(errorMessage, 'بستن', 5000);
+          this.isSaving = false;
         }
       });
     }
   }
 
-  applyFilter() {
-    // Reset to first page when filtering
-    this.currentPage = 1;
-    this.loadVisitInfos();
+  cancelEdit() {
+    if (this.visitInfo) {
+      this.visitInfoForm.patchValue({
+        about: this.visitInfo.about || '',
+        clinicAddress: this.visitInfo.clinicAddress || '',
+        clinicPhone: this.visitInfo.clinicPhone || '',
+        officeHours: this.visitInfo.officeHours || ''
+      });
+    } else {
+      this.visitInfoForm.reset();
+    }
+    this.isEditMode = false;
   }
 
-  getDoctorName(visitInfo: DoctorVisitInfo): string {
-    if (visitInfo.doctorName) {
-      return visitInfo.doctorName;
+  getDoctorDisplayName(): string {
+    if (this.doctor) {
+      const name = `${this.doctor.firstName || ''} ${this.doctor.lastName || ''}`.trim();
+      return name ? `${name} (${this.doctor.medicalCode})` : this.doctor.medicalCode || '';
     }
-    const doctor = this.doctors.find(d => d.id === visitInfo.doctorId);
-    if (doctor) {
-      return `${doctor.firstName || ''} ${doctor.lastName || ''}`.trim() || visitInfo.medicalCode || '-';
-    }
-    return visitInfo.medicalCode || '-';
+    return this.visitInfo?.doctorName || this.visitInfo?.medicalCode || '-';
+  }
+
+  goBack() {
+    this.router.navigate(['/panel/doctors']);
   }
 }

@@ -68,4 +68,34 @@ public interface IRepository<T> where T : BaseEntity
     /// <param name="cancellationToken">توکن لغو عملیات</param>
     /// <returns>کوئری قابل استفاده</returns>
     Task<IQueryable<T>> GetQueryableAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// دریافت موجودیت بر اساس شناسه (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="id">شناسه موجودیت</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>موجودیت یافت شده یا null</returns>
+    Task<T?> GetByIdNoTrackingAsync(int id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// دریافت تمام موجودیت‌ها (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>مجموعه موجودیت‌ها</returns>
+    Task<IEnumerable<T>> GetAllNoTrackingAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// جستجوی موجودیت‌ها بر اساس شرط (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="predicate">شرط جستجو</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>مجموعه موجودیت‌های یافت شده</returns>
+    Task<IEnumerable<T>> FindNoTrackingAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// دریافت کوئری قابل استفاده برای فیلتر و مرتب‌سازی (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>کوئری قابل استفاده بدون tracking</returns>
+    Task<IQueryable<T>> GetQueryableNoTrackingAsync(CancellationToken cancellationToken = default);
 }

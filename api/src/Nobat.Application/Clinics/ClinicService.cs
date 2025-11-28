@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nobat.Application.Common;
 using Nobat.Application.Clinics.Dto;
+using Nobat.Application.Repositories;
+using Nobat.Application.Users.Dto;
 using Nobat.Domain.Entities.Clinics;
+using Nobat.Domain.Entities.Users;
 using Nobat.Domain.Interfaces;
 using Sieve.Models;
 using Sieve.Services;
@@ -19,6 +22,8 @@ namespace Nobat.Application.Clinics;
 public class ClinicService : IClinicService
 {
     private readonly IRepository<Clinic> _repository;
+    private readonly IRepository<ClinicUser> _clinicUserRepository;
+    private readonly IRepository<User> _userRepository;
     private readonly IMapper _mapper;
     private readonly ISieveProcessor _sieveProcessor;
     private readonly ILogger<ClinicService> _logger;
@@ -29,12 +34,16 @@ public class ClinicService : IClinicService
     /// </summary>
     public ClinicService(
         IRepository<Clinic> repository,
+        IRepository<ClinicUser> clinicUserRepository,
+        IRepository<User> userRepository,
         IMapper mapper,
         ISieveProcessor sieveProcessor,
         ILogger<ClinicService> logger,
         IUnitOfWork unitOfWork)
     {
         _repository = repository;
+        _clinicUserRepository = clinicUserRepository;
+        _userRepository = userRepository;
         _mapper = mapper;
         _sieveProcessor = sieveProcessor;
         _logger = logger;
@@ -48,7 +57,7 @@ public class ClinicService : IClinicService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var clinic = await query
                 .Include(c => c.City)
                 .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
@@ -75,7 +84,7 @@ public class ClinicService : IClinicService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             query = query.Include(c => c.City);
 
             var totalCount = query.Count();
@@ -180,7 +189,7 @@ public class ClinicService : IClinicService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
 
             // فیلتر بر اساس نام اگر searchTerm ارائه شده باشد
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -200,6 +209,46 @@ public class ClinicService : IClinicService
         {
             _logger.LogError(ex, "Error getting simple clinic list");
             return ApiResponse<List<ClinicSimpleDto>>.Error("خطا در دریافت لیست کلینیک‌ها", ex);
+        }
+    }
+
+    /// <summary>
+    /// دریافت لیست کاربران کلینیک
+    /// </summary>
+    public async Task<ApiResponse<List<UserDto>>> GetClinicUsersAsync(int clinicId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var clinic = await _repository.GetByIdAsync(clinicId, cancellationToken);
+            if (clinic == null)
+            {
+                return ApiResponse<List<UserDto>>.Error("کلینیک یافت نشد", 404);
+            }
+
+            var clinicUsers = await _clinicUserRepository.FindAsync(cu => cu.ClinicId == clinicId, cancellationToken);
+            var userIds = clinicUsers.Select(cu => cu.UserId).ToList();
+
+            var users = new List<UserDto>();
+            foreach (var userId in userIds)
+            {
+                var user = await _userRepository.GetWithRolesAsync(userId, cancellationToken);
+                if (user != null)
+                {
+                    var roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>();
+                    var userDto = _mapper.Map<UserDto>(user);
+                    userDto.Roles = roles;
+                    userDto.CityName = user.City?.Name;
+                    userDto.ProvinceName = user.City?.Province?.Name;
+                    users.Add(userDto);
+                }
+            }
+
+            return ApiResponse<List<UserDto>>.Success(users, "لیست کاربران کلینیک با موفقیت دریافت شد");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting clinic users for clinicId: {ClinicId}", clinicId);
+            return ApiResponse<List<UserDto>>.Error("خطا در دریافت لیست کاربران کلینیک", ex);
         }
     }
 }

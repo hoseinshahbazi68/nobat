@@ -274,3 +274,21 @@ body {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+
+// Time Input Mask - 24-hour format (HH:MM)
+input[apptimemask] {
+  direction: ltr;
+  text-align: center;
+  letter-spacing: 2px;
+  font-family: 'Courier New', monospace;
+
+  &::placeholder {
+    color: #adb5bd;
+    letter-spacing: normal;
+    font-family: 'Vazirmatn', sans-serif;
+  }
+
+  &:focus {
+    letter-spacing: 2px;
+  }
+}

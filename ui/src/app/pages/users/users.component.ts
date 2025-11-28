@@ -1,11 +1,12 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { User, Gender } from '../../models/user.model';
 import { DialogService } from '../../services/dialog.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { UserService } from '../../services/user.service';
 import { UserActionsMenuComponent } from './user-actions-menu.component';
 import { UserClinicsDialogComponent } from './user-clinics-dialog.component';
-import { UserDialogComponent } from './user-dialog.component';
+import { AdminChangeUserPasswordDialogComponent } from './admin-change-user-password-dialog.component';
 
 @Component({
   selector: 'app-users',
@@ -26,6 +27,7 @@ export class UsersComponent implements OnInit {
   totalPages: number = 0;
 
   constructor(
+    private router: Router,
     private dialogService: DialogService,
     private snackbarService: SnackbarService,
     private userService: UserService
@@ -38,7 +40,16 @@ export class UsersComponent implements OnInit {
 
   loadUsers() {
     this.isLoading = true;
-    this.userService.getAll({ page: this.currentPage, pageSize: this.pageSize }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // اضافه کردن فیلتر SieveModel اگر filterValue وجود دارد
+    if (this.filterValue && this.filterValue.trim()) {
+      const searchTerm = this.filterValue.trim();
+      // جستجو در nationalCode, email, firstName, lastName
+      params.filters = `NationalCode@=*${searchTerm}*|Email@=*${searchTerm}*|FirstName@=*${searchTerm}*|LastName@=*${searchTerm}*`;
+    }
+
+    this.userService.getAll(params).subscribe({
       next: (result) => {
         this.users = result.items;
         this.filteredUsers = [...this.users];
@@ -67,27 +78,13 @@ export class UsersComponent implements OnInit {
   }
 
   openAddDialog() {
-    this.dialogService.open(UserDialogComponent, {
-      width: '700px',
-      maxWidth: '90vw',
-      data: null
-    }).subscribe(result => {
-      if (result) {
-        this.saveUser(result);
-      }
-    });
+    this.router.navigate(['/panel/users/new']);
   }
 
   editUser(user: User) {
-    this.dialogService.open(UserDialogComponent, {
-      width: '700px',
-      maxWidth: '90vw',
-      data: user
-    }).subscribe(result => {
-      if (result) {
-        this.saveUser(result, user.id);
-      }
-    });
+    if (user.id) {
+      this.router.navigate(['/panel/users', user.id]);
+    }
   }
 
   deleteUser(user: User) {
@@ -117,35 +114,9 @@ export class UsersComponent implements OnInit {
     }
   }
 
-  saveUser(userData: any, id?: number) {
-    if (id) {
-      const updateData = { ...userData, id };
-      this.userService.update(updateData).subscribe({
-        next: () => {
-          this.snackbarService.success('کاربر با موفقیت ویرایش شد', 'بستن', 3000);
-          this.loadUsers();
-        },
-        error: (error) => {
-          const errorMessage = error.error?.message || 'خطا در ویرایش کاربر';
-          this.snackbarService.error(errorMessage, 'بستن', 5000);
-        }
-      });
-    } else {
-      this.userService.create(userData).subscribe({
-        next: () => {
-          this.snackbarService.success('کاربر با موفقیت اضافه شد', 'بستن', 3000);
-          this.loadUsers();
-        },
-        error: (error) => {
-          const errorMessage = error.error?.message || 'خطا در افزودن کاربر';
-          this.snackbarService.error(errorMessage, 'بستن', 5000);
-        }
-      });
-    }
-  }
 
   applyFilter() {
-    // Reset to first page when filtering
+    // بازنشانی به صفحه اول هنگام جستجو
     this.currentPage = 1;
     this.loadUsers();
   }
@@ -202,12 +173,24 @@ export class UsersComponent implements OnInit {
       this.deleteUser(user);
     } else if (action === 'clinics') {
       this.openUserClinicsDialog(user);
+    } else if (action === 'change-password') {
+      this.openChangePasswordDialog(user);
     }
   }
 
   openUserClinicsDialog(user: User) {
     this.dialogService.open(UserClinicsDialogComponent, {
       width: '700px',
+      maxWidth: '90vw',
+      data: user
+    }).subscribe(result => {
+      // Dialog closed
+    });
+  }
+
+  openChangePasswordDialog(user: User) {
+    this.dialogService.open(AdminChangeUserPasswordDialogComponent, {
+      width: '600px',
       maxWidth: '90vw',
       data: user
     }).subscribe(result => {

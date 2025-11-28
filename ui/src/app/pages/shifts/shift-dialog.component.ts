@@ -24,7 +24,7 @@ import { Shift } from '../../models/shift.model';
           <div class="form-row">
             <div class="form-field">
               <label>ساعت شروع</label>
-              <input type="time" formControlName="startTime" required>
+              <input type="text" formControlName="startTime" appTimeMask placeholder="00:00" maxlength="5" required>
               <span class="error" *ngIf="shiftForm.get('startTime')?.hasError('required') && shiftForm.get('startTime')?.touched">
                 لطفا ساعت شروع را وارد نمایید
               </span>
@@ -32,7 +32,7 @@ import { Shift } from '../../models/shift.model';
 
             <div class="form-field">
               <label>ساعت پایان</label>
-              <input type="time" formControlName="endTime" required>
+              <input type="text" formControlName="endTime" appTimeMask placeholder="00:00" maxlength="5" required>
               <span class="error" *ngIf="shiftForm.get('endTime')?.hasError('required') && shiftForm.get('endTime')?.touched">
                 لطفا ساعت پایان را وارد نمایید
               </span>
@@ -119,6 +119,12 @@ import { Shift } from '../../models/shift.model';
       font-family: 'Vazirmatn', sans-serif;
       background: var(--bg-secondary);
       transition: all var(--transition-base);
+    }
+
+    .form-field input[type="text"][apptimemask] {
+      direction: ltr;
+      text-align: center;
+      letter-spacing: 2px;
     }
 
     .form-field input:focus,

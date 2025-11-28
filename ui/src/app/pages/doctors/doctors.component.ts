@@ -1,12 +1,13 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { Doctor, DoctorListDto } from '../../models/doctor.model';
+import { DoctorListDto } from '../../models/doctor.model';
 import { ClinicService } from '../../services/clinic.service';
 import { DialogService } from '../../services/dialog.service';
 import { DoctorService } from '../../services/doctor.service';
 import { SnackbarService } from '../../services/snackbar.service';
 import { DoctorActionsMenuComponent } from './doctor-actions-menu.component';
+import { AdminChangeDoctorPasswordDialogComponent } from './admin-change-doctor-password-dialog.component';
 
 @Component({
   selector: 'app-doctors',
@@ -21,6 +22,12 @@ export class DoctorsComponent implements OnInit, OnDestroy {
   selectedClinicId: number | null = null;
   isLoading = false;
   private clinicSubscription?: Subscription;
+
+  // Pagination properties
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
 
   constructor(
     private router: Router,
@@ -37,9 +44,11 @@ export class DoctorsComponent implements OnInit, OnDestroy {
     this.clinicSubscription = this.clinicService.selectedClinic$.subscribe(clinic => {
       if (clinic) {
         this.selectedClinicId = clinic.id || null;
+        this.currentPage = 1; // بازنشانی به صفحه اول
         this.loadDoctors(); // بارگذاری مجدد پزشکان با فیلتر کلینیک
       } else {
         this.selectedClinicId = null;
+        this.currentPage = 1; // بازنشانی به صفحه اول
         this.loadDoctors(); // بارگذاری مجدد پزشکان بدون فیلتر
       }
     });
@@ -58,17 +67,27 @@ export class DoctorsComponent implements OnInit, OnDestroy {
 
   loadDoctors() {
     this.isLoading = true;
-    const params: any = { page: 1, pageSize: 100 };
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
 
     // اگر کلینیک انتخاب شده باشد، clinicId را اضافه کن
     if (this.selectedClinicId) {
       params.clinicId = this.selectedClinicId;
     }
 
+    // اضافه کردن فیلتر SieveModel اگر filterValue وجود دارد
+    if (this.filterValue && this.filterValue.trim()) {
+      const searchTerm = this.filterValue.trim();
+      // جستجو در firstName, lastName, medicalCode, nationalCode, phone
+      params.filters = `FirstName@=*${searchTerm}*|LastName@=*${searchTerm}*|MedicalCode@=*${searchTerm}*|NationalCode@=*${searchTerm}*|Phone@=*${searchTerm}*`;
+    }
+
     this.doctorService.getAll(params).subscribe({
       next: (result) => {
         this.doctors = result.items;
         this.filteredDoctors = [...this.doctors];
+        this.totalCount = result.totalCount;
+        this.totalPages = result.totalPages;
+        this.currentPage = result.page;
         this.isLoading = false;
       },
       error: (error) => {
@@ -77,6 +96,17 @@ export class DoctorsComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadDoctors();
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.loadDoctors();
   }
 
   openActionsMenu(event: Event, doctor: DoctorListDto) {
@@ -111,6 +141,8 @@ export class DoctorsComponent implements OnInit, OnDestroy {
       this.viewDoctorSchedule(doctor);
     } else if (action === 'visit-info') {
       this.viewDoctorVisitInfo(doctor);
+    } else if (action === 'change-password') {
+      this.openChangePasswordDialog(doctor);
     } else if (action === 'delete') {
       this.deleteDoctor(doctor);
     }
@@ -179,6 +211,25 @@ export class DoctorsComponent implements OnInit, OnDestroy {
     return `${doctor.firstName} ${doctor.lastName}`;
   }
 
+  openChangePasswordDialog(doctor: DoctorListDto) {
+    // Pass userId directly from doctor object (no need to fetch from API)
+    if (!doctor.userId) {
+      this.snackbarService.error('این پزشک کاربر مرتبط ندارد', 'بستن', 5000);
+      return;
+    }
+
+    this.dialogService.open(AdminChangeDoctorPasswordDialogComponent, {
+      width: '600px',
+      maxWidth: '90vw',
+      data: {
+        doctor: doctor,
+        userId: doctor.userId
+      }
+    }).subscribe(result => {
+      // Dialog closed
+    });
+  }
+
   deleteDoctor(doctor: DoctorListDto) {
     if (doctor.id) {
       const doctorName = this.getDoctorDisplayName(doctor);
@@ -192,9 +243,11 @@ export class DoctorsComponent implements OnInit, OnDestroy {
         if (result) {
           this.doctorService.delete(doctor.id!).subscribe({
             next: () => {
-              this.doctors = this.doctors.filter(d => d.id !== doctor.id);
-              this.filteredDoctors = [...this.doctors];
-              this.applyFilter();
+              // اگر صفحه فعلی خالی شد و صفحه قبلی وجود دارد، به صفحه قبلی برو
+              if (this.doctors.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadDoctors();
               this.snackbarService.success('پزشک با موفقیت حذف شد', 'بستن', 3000);
             },
             error: (error) => {
@@ -208,27 +261,9 @@ export class DoctorsComponent implements OnInit, OnDestroy {
   }
 
   applyFilter() {
-    let filtered = [...this.doctors];
-
-    // فیلتر بر اساس متن جستجو
-    if (this.filterValue.trim()) {
-      const filter = this.filterValue.trim().toLowerCase();
-      filtered = filtered.filter(doctor => {
-        const firstName = doctor.firstName?.toLowerCase() || '';
-        const lastName = doctor.lastName?.toLowerCase() || '';
-        const phone = doctor.phone || '';
-        const medicalCode = doctor.medicalCode?.toLowerCase() || '';
-        const nationalCode = doctor.nationalCode || '';
-
-        return firstName.includes(filter) ||
-          lastName.includes(filter) ||
-          phone.includes(filter) ||
-          medicalCode.includes(filter) ||
-          nationalCode.includes(filter);
-      });
-    }
-
-    this.filteredDoctors = filtered;
+    // بازنشانی به صفحه اول هنگام جستجو
+    this.currentPage = 1;
+    this.loadDoctors();
   }
 
 }

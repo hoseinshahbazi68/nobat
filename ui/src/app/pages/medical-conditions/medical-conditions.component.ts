@@ -39,7 +39,9 @@ export class MedicalConditionsComponent implements OnInit {
 
     // Add filter if filterValue exists
     if (this.filterValue && this.filterValue.trim()) {
-      params.filters = `name@=*${this.filterValue.trim()}*`;
+      const searchTerm = this.filterValue.trim();
+      // جستجو در name و description
+      params.filters = `Name@=*${searchTerm}*|Description@=*${searchTerm}*`;
     }
 
     this.medicalConditionService.getAll(params).subscribe({

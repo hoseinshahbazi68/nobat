@@ -42,7 +42,7 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var visitInfo = await query
                 .Include(v => v.Doctor)
                     .ThenInclude(d => d.User)
@@ -73,7 +73,7 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var visitInfo = await query
                 .Include(v => v.Doctor)
                     .ThenInclude(d => d.User)
@@ -104,7 +104,7 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             query = query.Include(v => v.Doctor).ThenInclude(d => d.User);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -114,11 +114,9 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
             var page = sieveModel.Page ?? 1;
             var pageSize = sieveModel.PageSize ?? 10;
 
-            // در صورت عدم وجود OrderBy از Sieve، یک OrderBy پیش‌فرض اضافه می‌کنیم
-            if (!query.Expression.ToString().Contains("OrderBy") && !query.Expression.ToString().Contains("OrderByDescending"))
-            {
-                query = query.OrderByDescending(v => v.Id);
-            }
+            // اضافه کردن OrderBy پیش‌فرض برای جلوگیری از نتایج غیرقابل پیش‌بینی
+            // Sieve اگر خودش OrderBy داشته باشد، آن را اعمال می‌کند
+            query = query.OrderByDescending(v => v.Id);
 
             var items = await query
                 .Skip((page - 1) * pageSize)
@@ -142,7 +140,6 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
             };
 
             return ApiResponse<PagedResult<DoctorVisitInfoDto>>.Success(result, "لیست اطلاعات ویزیت با موفقیت دریافت شد");
@@ -249,7 +246,7 @@ public class DoctorVisitInfoService : IDoctorVisitInfoService
                 return ApiResponse<bool>.Error("اطلاعات ویزیت یافت نشد", 404);
             }
 
-            await _repository.DeleteAsync(visitInfo, cancellationToken);
+            await _repository.DeleteAsync(id, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Visit info deleted with ID: {Id}", id);

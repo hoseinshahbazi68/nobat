@@ -110,4 +110,13 @@ public interface IUserService
     /// <param name="cancellationToken">توکن لغو عملیات</param>
     /// <returns>نتیجه عملیات</returns>
     Task<ApiResponse> RemoveClinicFromUserAsync(int userId, int clinicId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// تغییر رمز عبور کاربر توسط ادمین (بدون نیاز به رمز عبور فعلی)
+    /// </summary>
+    /// <param name="userId">شناسه کاربر</param>
+    /// <param name="resetPasswordDto">اطلاعات تغییر رمز عبور</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>نتیجه عملیات</returns>
+    Task<ApiResponse> ResetUserPasswordAsync(int userId, ResetUserPasswordDto resetPasswordDto, CancellationToken cancellationToken = default);
 }

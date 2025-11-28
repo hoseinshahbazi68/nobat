@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let insurance of filteredInsurances">
+          <tr *ngFor="let insurance of paginatedInsurances">
             <td>{{ insurance.id }}</td>
             <td>{{ insurance.name }}</td>
             <td>{{ insurance.code }}</td>
@@ -48,11 +48,20 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="filteredInsurances.length === 0 && !isLoading">
+          <tr *ngIf="paginatedInsurances.length === 0 && !isLoading">
             <td colspan="5" class="no-data">داده‌ای یافت نشد</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <app-pagination
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalCount]="totalCount"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
   </div>
 </div>

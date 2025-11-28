@@ -1,5 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { Clinic } from '../../models/clinic.model';
 import { City } from '../../models/city.model';
 import { CityService } from '../../services/city.service';
@@ -41,20 +43,35 @@ import { CityService } from '../../services/city.service';
           </div>
 
           <div class="form-row">
-            <div class="form-field full-width">
-              <label>شهر</label>
-              <select formControlName="cityId">
-                <option value="">انتخاب کنید</option>
-                <option *ngFor="let city of cities" [value]="city.id">{{ city.name }}</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
             <div class="form-field">
               <label>تعداد روز تولید نوبت‌دهی</label>
               <input type="number" formControlName="appointmentGenerationDays" min="0" placeholder="مثال: 30">
               <span class="error" *ngIf="clinicForm.get('appointmentGenerationDays')?.hasError('min') && clinicForm.get('appointmentGenerationDays')?.touched">تعداد روز باید عدد مثبت باشد</span>
+            </div>
+            <div class="form-field  ">
+              <label>شهر</label>
+              <div class="city-search-container">
+                <input type="text" [(ngModel)]="citySearchText" [ngModelOptions]="{standalone: true}"
+                  (input)="onCitySearch()" (focus)="onCityInputFocus()" (blur)="onCityInputBlur()"
+                  placeholder="جستجو و انتخاب شهر..." class="city-search-input">
+                <span class="search-icon">🔍</span>
+                <div class="city-dropdown" *ngIf="showCityDropdown && filteredCities.length > 0"
+                  (mousedown)="$event.preventDefault()">
+                  <div class="city-item" *ngFor="let city of filteredCities" (click)="selectCity(city)">
+                    <span class="city-name">{{ city.name }}</span>
+                    <span class="province-name" *ngIf="city.provinceName">{{ city.provinceName }}</span>
+                  </div>
+                </div>
+                <div class="city-dropdown empty"
+                  *ngIf="showCityDropdown && filteredCities.length === 0 && cities.length > 0"
+                  (mousedown)="$event.preventDefault()">
+                  <div class="city-item">شهری یافت نشد</div>
+                </div>
+                <div class="city-dropdown empty" *ngIf="showCityDropdown && cities.length === 0"
+                  (mousedown)="$event.preventDefault()">
+                  <div class="city-item">در حال بارگذاری شهرها...</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -155,6 +172,74 @@ import { CityService } from '../../services/city.service';
       box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.1);
     }
 
+    .city-search-container {
+      position: relative;
+
+      .city-search-input {
+        padding-right: 40px;
+      }
+
+      .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        font-size: 1rem;
+        color: var(--text-muted);
+      }
+
+      .city-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-top: 4px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 1000;
+        box-shadow: var(--shadow-lg);
+
+        &.empty {
+          padding: 12px;
+          text-align: center;
+          color: var(--text-muted);
+        }
+
+        .city-item {
+          padding: 12px 16px;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: background var(--transition-base);
+          border-bottom: 1px solid var(--border-light);
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:hover {
+            background: var(--bg-tertiary);
+          }
+
+          .city-name {
+            font-weight: 600;
+            color: var(--text-primary);
+          }
+
+          .province-name {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-right: 8px;
+          }
+        }
+      }
+    }
+
     .form-field textarea {
       resize: vertical;
       min-height: 80px;
@@ -244,11 +329,16 @@ import { CityService } from '../../services/city.service';
     }
   `]
 })
-export class ClinicDialogComponent implements OnInit {
+export class ClinicDialogComponent implements OnInit, OnDestroy {
   clinicForm: FormGroup;
   data: Clinic | null = null;
   dialogRef: any = null;
   cities: City[] = [];
+  filteredCities: City[] = [];
+  citySearchText: string = '';
+  showCityDropdown: boolean = false;
+  isSearchingCities: boolean = false;
+  private citySearchSubject = new Subject<string>();
 
   constructor(
     private fb: FormBuilder,
@@ -266,23 +356,86 @@ export class ClinicDialogComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadCities();
     if (this.data) {
       this.clinicForm.patchValue(this.data);
     }
+    this.setupCitySearch();
+    // اگر شهر انتخاب شده است، متن جستجو را تنظیم کن
+    const cityId = this.data?.cityId || this.clinicForm.get('cityId')?.value;
+    if (cityId) {
+      this.cityService.getById(cityId).subscribe({
+        next: (city) => {
+          this.citySearchText = `${city.name}${city.provinceName ? ' - ' + city.provinceName : ''}`;
+        }
+      });
+    }
   }
 
-  loadCities() {
-    this.cityService.getAll({ page: 1, pageSize: 1000 }).subscribe({
-      next: (result) => {
-        if (result && result.items) {
-          this.cities = result.items;
+  setupCitySearch() {
+    this.citySearchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(searchTerm => {
+        this.isSearchingCities = true;
+        const searchText = searchTerm?.trim() || '';
+        if (searchText) {
+          return this.cityService.getAll({
+            page: 1,
+            pageSize: 100,
+            filters: `name.Contains("${searchText}") || provinceName.Contains("${searchText}")`
+          }).pipe(
+            catchError(error => {
+              this.isSearchingCities = false;
+              console.error('خطا در جستجوی شهرها:', error);
+              return [];
+            })
+          );
+        } else {
+          return this.cityService.getAll({ page: 1, pageSize: 100 }).pipe(
+            catchError(error => {
+              this.isSearchingCities = false;
+              console.error('خطا در بارگذاری شهرها:', error);
+              return [];
+            })
+          );
         }
-      },
-      error: (error) => {
-        console.error('خطا در بارگذاری شهرها:', error);
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result && 'items' in result) {
+          this.filteredCities = result.items || [];
+        } else if (Array.isArray(result)) {
+          this.filteredCities = result;
+        } else {
+          this.filteredCities = [];
+        }
+        this.isSearchingCities = false;
       }
     });
+  }
+
+  onCitySearch() {
+    this.citySearchSubject.next(this.citySearchText);
+    this.showCityDropdown = true;
+  }
+
+  selectCity(city: City) {
+    this.clinicForm.patchValue({ cityId: city.id });
+    this.citySearchText = `${city.name}${city.provinceName ? ' - ' + city.provinceName : ''}`;
+    this.showCityDropdown = false;
+  }
+
+  onCityInputFocus() {
+    this.showCityDropdown = true;
+    if (!this.citySearchText || !this.citySearchText.trim()) {
+      this.citySearchSubject.next('');
+    }
+  }
+
+  onCityInputBlur() {
+    setTimeout(() => {
+      this.showCityDropdown = false;
+    }, 200);
   }
 
   onSave() {
@@ -301,5 +454,9 @@ export class ClinicDialogComponent implements OnInit {
     if (this.dialogRef) {
       this.dialogRef.close();
     }
+  }
+
+  ngOnDestroy() {
+    this.citySearchSubject.complete();
   }
 }

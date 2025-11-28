@@ -121,4 +121,46 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
     {
         return Task.FromResult(_dbSet.AsQueryable());
     }
+
+    /// <summary>
+    /// دریافت موجودیت بر اساس شناسه (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="id">شناسه موجودیت</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>موجودیت یافت شده یا null</returns>
+    public virtual async Task<T?> GetByIdNoTrackingAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AsNoTracking().Where(x => x.Id == id).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// دریافت تمام موجودیت‌ها (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>مجموعه موجودیت‌ها</returns>
+    public virtual async Task<IEnumerable<T>> GetAllNoTrackingAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AsNoTracking().ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// جستجوی موجودیت‌ها بر اساس شرط (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="predicate">شرط جستجو</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>مجموعه موجودیت‌های یافت شده</returns>
+    public virtual async Task<IEnumerable<T>> FindNoTrackingAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+    {
+        return await _dbSet.AsNoTracking().Where(predicate).ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// دریافت کوئری قابل استفاده برای فیلتر و مرتب‌سازی (بدون tracking - برای read-only)
+    /// </summary>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>کوئری قابل استفاده بدون tracking</returns>
+    public virtual Task<IQueryable<T>> GetQueryableNoTrackingAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(_dbSet.AsNoTracking().AsQueryable());
+    }
 }

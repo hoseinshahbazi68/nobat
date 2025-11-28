@@ -1,6 +1,6 @@
-import { Specialty } from './specialty.model';
 import { Clinic } from './clinic.model';
-import { MedicalCondition, DoctorMedicalCondition } from './medical-condition.model';
+import { DoctorMedicalCondition } from './medical-condition.model';
+import { Specialty } from './specialty.model';
 
 export enum DoctorPrefix {
   None = 0,
@@ -91,6 +91,7 @@ export interface DoctorListDto {
   scientificDegree?: ScientificDegree;
   nationalCode: string;
   createdAt: string;
+  userId?: number;
 }
 
 // Helper functions for displaying enum values

@@ -29,7 +29,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let shift of filteredShifts">
+          <tr *ngFor="let shift of shifts">
             <td>{{ shift.id }}</td>
             <td>{{ shift.name }}</td>
             <td>{{ shift.startTime }}</td>
@@ -46,11 +46,20 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="filteredShifts.length === 0 && !isLoading">
+          <tr *ngIf="shifts.length === 0 && !isLoading">
             <td colspan="6" class="no-data">داده‌ای یافت نشد</td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <app-pagination
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalCount]="totalCount"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
   </div>
 </div>

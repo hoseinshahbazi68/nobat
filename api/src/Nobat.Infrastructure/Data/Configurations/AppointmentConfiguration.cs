@@ -20,16 +20,9 @@ public class AppointmentConfiguration : IEntityTypeConfiguration<Appointment>
             .HasConversion<int>();
 
         // ایندکس برای جستجوی سریع
-        builder.HasIndex(a => a.DoctorId);
         builder.HasIndex(a => a.DoctorScheduleId);
         builder.HasIndex(a => a.AppointmentDateTime);
         builder.HasIndex(a => a.Status);
-
-        // رابطه با Doctor
-        builder.HasOne(a => a.Doctor)
-            .WithMany(d => d.Appointments)
-            .HasForeignKey(a => a.DoctorId)
-            .OnDelete(DeleteBehavior.Restrict);
 
         // رابطه با DoctorSchedule
         builder.HasOne(a => a.DoctorSchedule)

@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nobat.Application.Common;
 using Nobat.Application.Schedules;
@@ -42,7 +43,7 @@ public class ServiceService : IServiceService
     {
         try
         {
-            var service = await _repository.GetByIdAsync(id, cancellationToken);
+            var service = await _repository.GetByIdNoTrackingAsync(id, cancellationToken);
             if (service == null)
             {
                 return ApiResponse<ServiceDto>.Error("خدمت با شناسه مشخص شده یافت نشد", 404);
@@ -64,16 +65,33 @@ public class ServiceService : IServiceService
         {
             var query = await _repository.GetQueryableAsync(cancellationToken);
 
-            var totalCount = query.Count();
-            var filteredQuery = _sieveProcessor.Apply(sieveModel, query);
-            var services = filteredQuery.ToList();
+            // Apply filters and sorting (but not pagination) for counting
+            var countModel = new SieveModel
+            {
+                Filters = sieveModel.Filters,
+                Sorts = sieveModel.Sorts
+            };
+            var filteredQueryForCount = _sieveProcessor.Apply(countModel, query);
+            var totalCount = await filteredQueryForCount.CountAsync(cancellationToken);
+
+            // Apply filters and sorting (but not pagination) for data retrieval
+            var filteredQuery = _sieveProcessor.Apply(countModel, query);
+
+            var page = sieveModel.Page ?? 1;
+            var pageSize = sieveModel.PageSize ?? 10;
+
+            // Apply pagination manually
+            var services = await filteredQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
             var result = new PagedResult<ServiceDto>
             {
                 Items = _mapper.Map<List<ServiceDto>>(services),
                 TotalCount = totalCount,
-                Page = sieveModel.Page ?? 1,
-                PageSize = sieveModel.PageSize ?? 10
+                Page = page,
+                PageSize = pageSize
             };
 
             return ApiResponse<PagedResult<ServiceDto>>.Success(result, "لیست خدمات با موفقیت دریافت شد");

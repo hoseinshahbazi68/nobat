@@ -1,7 +1,6 @@
 using Nobat.Domain.Common;
 using Nobat.Domain.Entities.Services;
 using Nobat.Domain.Entities.Users;
-using Nobat.Domain.Entities.Appointments;
 using Nobat.Domain.Enums;
 
 namespace Nobat.Domain.Entities.Doctors;
@@ -57,11 +56,6 @@ public class Doctor : BaseEntity
     /// مجموعه تخصص‌های پزشک (many-to-many)
     /// </summary>
     public virtual ICollection<DoctorSpecialty> DoctorSpecialties { get; set; } = new List<DoctorSpecialty>();
-
-    /// <summary>
-    /// مجموعه نوبت‌های پزشک
-    /// </summary>
-    public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
     /// <summary>
     /// مجموعه کلینیک‌های پزشک (many-to-many)

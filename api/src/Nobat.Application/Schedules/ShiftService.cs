@@ -68,7 +68,7 @@ public class ShiftService : IShiftService
     /// <returns>شیفت یافت شده یا null</returns>
     public async Task<ShiftDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var shift = await _repository.GetByIdAsync(id, cancellationToken);
+        var shift = await _repository.GetByIdNoTrackingAsync(id, cancellationToken);
         return shift != null ? _mapper.Map<ShiftDto>(shift) : null;
     }
 
@@ -80,11 +80,21 @@ public class ShiftService : IShiftService
     /// <returns>نتیجه صفحه‌بندی شده</returns>
     public async Task<PagedResult<ShiftDto>> GetAllAsync(SieveModel sieveModel, CancellationToken cancellationToken = default)
     {
-        var query = await _repository.GetQueryableAsync(cancellationToken);
+        var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
 
-        var totalCount = query.Count();
+        // Apply filters and sorting
         var filteredQuery = _sieveProcessor.Apply(sieveModel, query);
         var shifts = filteredQuery.ToList();
+
+        // Count total after filtering but before pagination
+        // Create a new SieveModel without pagination for counting
+        var countModel = new SieveModel
+        {
+            Filters = sieveModel.Filters,
+            Sorts = sieveModel.Sorts
+        };
+        var countQuery = _sieveProcessor.Apply(countModel, query);
+        var totalCount = countQuery.Count();
 
         var result = new PagedResult<ShiftDto>
         {

@@ -14,6 +14,15 @@ export class BaseApiService {
 
   constructor(protected http: HttpClient) { }
 
+  /**
+   * ساخت URL با مدیریت صحیح اسلش‌ها
+   */
+  private buildUrl(endpoint: string): string {
+    const base = this.baseUrl.endsWith('/') ? this.baseUrl.slice(0, -1) : this.baseUrl;
+    const path = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+    return `${base}/${path}`;
+  }
+
   protected get<T>(endpoint: string, params?: any): Observable<T> {
     let httpParams = new HttpParams();
     if (params) {
@@ -23,7 +32,7 @@ export class BaseApiService {
         }
       });
     }
-    return this.http.get<any>(`${this.baseUrl}/${endpoint}`, { params: httpParams }).pipe(
+    return this.http.get<any>(this.buildUrl(endpoint), { params: httpParams }).pipe(
       map(response => {
         // بررسی اینکه آیا response به صورت مستقیم PagedResult است (بدون ApiResponse wrapper)
         if (this.isPagedResult(response)) {
@@ -57,7 +66,7 @@ export class BaseApiService {
   }
 
   protected post<T>(endpoint: string, body: any): Observable<T> {
-    return this.http.post<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, body).pipe(
+    return this.http.post<ApiResponse<T>>(this.buildUrl(endpoint), body).pipe(
       map(response => {
         console.log('API Response:', response); // Debug log
         if (!response || !response.status) {
@@ -88,7 +97,7 @@ export class BaseApiService {
   }
 
   protected put<T>(endpoint: string, body: any): Observable<T> {
-    return this.http.put<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, body).pipe(
+    return this.http.put<ApiResponse<T>>(this.buildUrl(endpoint), body).pipe(
       map(response => {
         if (!response || !response.status) {
           const errorMessage = response?.message || 'خطا در به‌روزرسانی داده';
@@ -113,7 +122,7 @@ export class BaseApiService {
   }
 
   protected deleteRequest<T>(endpoint: string): Observable<T> {
-    return this.http.delete<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`).pipe(
+    return this.http.delete<ApiResponse<T>>(this.buildUrl(endpoint)).pipe(
       map(response => {
         if (!response.status) {
           throw new Error(response.message || 'خطا در حذف داده');
@@ -128,7 +137,7 @@ export class BaseApiService {
   }
 
   protected postWithFile<T>(endpoint: string, formData: FormData): Observable<T> {
-    return this.http.post<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, formData).pipe(
+    return this.http.post<ApiResponse<T>>(this.buildUrl(endpoint), formData).pipe(
       map(response => {
         if (!response || !response.status) {
           const errorMessage = response?.message || 'خطا در ارسال داده';
@@ -150,7 +159,7 @@ export class BaseApiService {
   }
 
   protected putWithFile<T>(endpoint: string, formData: FormData): Observable<T> {
-    return this.http.put<ApiResponse<T>>(`${this.baseUrl}/${endpoint}`, formData).pipe(
+    return this.http.put<ApiResponse<T>>(this.buildUrl(endpoint), formData).pipe(
       map(response => {
         if (!response || !response.status) {
           const errorMessage = response?.message || 'خطا در به‌روزرسانی داده';

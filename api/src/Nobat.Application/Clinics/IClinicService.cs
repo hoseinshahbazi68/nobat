@@ -38,4 +38,9 @@ public interface IClinicService
     /// دریافت لیست ساده کلینیک‌ها (فقط نام و شناسه)
     /// </summary>
     Task<ApiResponse<List<ClinicSimpleDto>>> GetSimpleListAsync(string? searchTerm = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// دریافت لیست کاربران کلینیک
+    /// </summary>
+    Task<ApiResponse<List<Users.Dto.UserDto>>> GetClinicUsersAsync(int clinicId, CancellationToken cancellationToken = default);
 }

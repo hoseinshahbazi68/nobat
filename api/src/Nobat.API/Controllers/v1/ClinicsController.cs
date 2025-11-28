@@ -133,4 +133,17 @@ public class ClinicsController : BaseController
         var response = await _clinicService.GetSimpleListAsync(searchTerm, cancellationToken);
         return ToActionResult(response);
     }
+
+    /// <summary>
+    /// دریافت لیست کاربران کلینیک
+    /// </summary>
+    /// <param name="id">شناسه کلینیک</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>لیست کاربران کلینیک</returns>
+    [HttpGet("{id}/users")]
+    public async Task<IActionResult> GetClinicUsers(int id, CancellationToken cancellationToken)
+    {
+        var response = await _clinicService.GetClinicUsersAsync(id, cancellationToken);
+        return ToActionResult(response);
+    }
 }

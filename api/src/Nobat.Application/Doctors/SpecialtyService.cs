@@ -75,7 +75,7 @@ public class SpecialtyService : ISpecialtyService
     {
         try
         {
-            var query = await _specialtyRepository.GetQueryableAsync(cancellationToken);
+            var query = await _specialtyRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             var totalCount = query.Count();
             var filteredQuery = _sieveProcessor.Apply(sieveModel, query);

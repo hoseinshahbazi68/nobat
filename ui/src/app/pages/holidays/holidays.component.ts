@@ -37,7 +37,15 @@ export class HolidaysComponent implements OnInit {
 
   loadHolidays() {
     this.isLoading = true;
-    this.holidayService.getAll({ page: this.currentPage, pageSize: this.pageSize }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // Add filter if exists
+    if (this.filterValue && this.filterValue.trim()) {
+      // Format filter for Sieve: Name@=*{value}*|Description@=*{value}* (OR condition)
+      params.filters = `Name@=*${this.filterValue.trim()}*|Description@=*${this.filterValue.trim()}*`;
+    }
+
+    this.holidayService.getAll(params).subscribe({
       next: (result) => {
         console.log('Holidays loaded:', result);
         this.holidays = result.items || [];
@@ -103,9 +111,11 @@ export class HolidaysComponent implements OnInit {
         if (result) {
           this.holidayService.delete(holiday.id!).subscribe({
             next: () => {
-              this.holidays = this.holidays.filter(h => h.id !== holiday.id);
-              this.filteredHolidays = [...this.holidays];
-              this.applyFilter();
+              // If current page becomes empty after deletion, go to previous page
+              if (this.holidays.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadHolidays();
               this.snackbarService.success('تعطیل با موفقیت حذف شد', 'بستن', 3000);
             },
             error: (error) => {

@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { BaseApiService } from './base-api.service';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { Clinic, ClinicSimple, CreateClinicRequest, UpdateClinicRequest } from '../models/clinic.model';
 import { PagedResult } from '../models/paged-result.model';
+import { User } from '../models/user.model';
+import { BaseApiService } from './base-api.service';
 
 export interface ClinicQueryParams {
   page?: number;
@@ -63,6 +64,19 @@ export class ClinicService extends BaseApiService {
     return this.selectedClinicSubject.value;
   }
 
+  /**
+   * خواندن شناسه کلینیک انتخاب شده مستقیماً از کوکی
+   * @returns شناسه کلینیک یا null در صورت عدم وجود
+   */
+  getSelectedClinicIdFromCookie(): number | null {
+    const clinicId = this.getCookie('selectedClinicId');
+    if (clinicId) {
+      const id = parseInt(clinicId, 10);
+      return isNaN(id) ? null : id;
+    }
+    return null;
+  }
+
   private loadSelectedClinicFromCookie(): void {
     const clinicId = this.getCookie('selectedClinicId');
     if (clinicId) {
@@ -94,5 +108,9 @@ export class ClinicService extends BaseApiService {
 
   private deleteCookie(name: string): void {
     document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+  }
+
+  getClinicUsers(clinicId: number): Observable<User[]> {
+    return this.get<User[]>(`clinics/${clinicId}/users`);
   }
 }

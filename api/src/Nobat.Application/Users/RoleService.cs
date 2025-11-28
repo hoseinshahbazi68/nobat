@@ -46,7 +46,7 @@ public class RoleService : IRoleService
     {
         try
         {
-            var role = await _roleRepository.GetByIdAsync(id, cancellationToken);
+            var role = await _roleRepository.GetByIdNoTrackingAsync(id, cancellationToken);
             if (role == null)
             {
                 return ApiResponse<RoleDto>.Error("نقش با شناسه مشخص شده یافت نشد", 404);
@@ -69,7 +69,7 @@ public class RoleService : IRoleService
     {
         try
         {
-            var query = await _roleRepository.GetQueryableAsync(cancellationToken);
+            var query = await _roleRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             var totalCount = query.Count();
             var filteredQuery = _sieveProcessor.Apply(sieveModel, query);

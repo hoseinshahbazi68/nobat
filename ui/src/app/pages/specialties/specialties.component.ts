@@ -36,7 +36,16 @@ export class SpecialtiesComponent implements OnInit {
 
   loadSpecialties() {
     this.isLoading = true;
-    this.specialtyService.getAll({ page: this.currentPage, pageSize: this.pageSize }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // Add filter if exists
+    if (this.filterValue && this.filterValue.trim()) {
+      const searchTerm = this.filterValue.trim();
+      // جستجو در name و description
+      params.filters = `Name@=*${searchTerm}*|Description@=*${searchTerm}*`;
+    }
+
+    this.specialtyService.getAll(params).subscribe({
       next: (result) => {
         this.specialties = result.items;
         this.filteredSpecialties = [...this.specialties];

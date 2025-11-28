@@ -44,7 +44,7 @@ public class ServiceTariffService : IServiceTariffService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var tariff = await query
                 .Include(t => t.Service)
                 .Include(t => t.Insurance)
@@ -86,7 +86,7 @@ public class ServiceTariffService : IServiceTariffService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             query = query
                 .Include(t => t.Service)
                 .Include(t => t.Insurance)

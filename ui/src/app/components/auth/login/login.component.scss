@@ -152,6 +152,44 @@
       margin-top: 4px;
     }
   }
+
+  .remember-me {
+    margin-bottom: 1rem;
+    margin-top: -0.5rem;
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-size: 0.9rem;
+      margin: 0;
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-left: 8px;
+        cursor: pointer;
+        accent-color: var(--primary);
+        border: 2px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        transition: all var(--transition-base);
+
+        &:hover {
+          border-color: var(--primary-light);
+        }
+
+        &:checked {
+          border-color: var(--primary);
+        }
+      }
+
+      span {
+        user-select: none;
+      }
+    }
+  }
 }
 
 .btn {

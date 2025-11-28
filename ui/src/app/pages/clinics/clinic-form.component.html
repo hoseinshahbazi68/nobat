@@ -1,0 +1,100 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>{{ isEditMode ? 'ویرایش کلینیک' : 'افزودن کلینیک جدید' }}</h1>
+    <button class="btn btn-secondary" (click)="cancel()">
+      <span class="icon">←</span>
+      بازگشت به لیست
+    </button>
+  </div>
+
+  <div class="form-card" *ngIf="!isLoading">
+    <form [formGroup]="clinicForm" (ngSubmit)="saveClinic()">
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>نام کلینیک <span class="required">*</span></label>
+          <input type="text" formControlName="name" required>
+          <span class="error" *ngIf="clinicForm.get('name')?.hasError('required') && clinicForm.get('name')?.touched">
+            لطفا نام کلینیک را وارد نمایید
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>آدرس</label>
+          <textarea formControlName="address" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>شماره تلفن</label>
+          <input type="tel" formControlName="phone">
+        </div>
+        <div class="form-field">
+          <label>ایمیل</label>
+          <input type="email" formControlName="email">
+          <span class="error" *ngIf="clinicForm.get('email')?.hasError('email') && clinicForm.get('email')?.touched">
+            فرمت ایمیل صحیح نیست
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>تعداد روز تولید نوبت‌دهی</label>
+          <input type="number" formControlName="appointmentGenerationDays" min="0" placeholder="مثال: 30">
+          <span class="error" *ngIf="clinicForm.get('appointmentGenerationDays')?.hasError('min') && clinicForm.get('appointmentGenerationDays')?.touched">
+            تعداد روز باید عدد مثبت باشد
+          </span>
+        </div>
+        <div class="form-field">
+          <label>شهر</label>
+          <div class="city-search-container">
+            <input type="text" [(ngModel)]="citySearchText" [ngModelOptions]="{standalone: true}"
+              (input)="onCitySearch()" (focus)="onCityInputFocus()" (blur)="onCityInputBlur()"
+              placeholder="جستجو و انتخاب شهر..." class="city-search-input">
+            <span class="search-icon">🔍</span>
+            <div class="city-dropdown" *ngIf="showCityDropdown && filteredCities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item" *ngFor="let city of filteredCities" (click)="selectCity(city)">
+                <span class="city-name">{{ city.name }}</span>
+                <span class="province-name" *ngIf="city.provinceName">{{ city.provinceName }}</span>
+              </div>
+            </div>
+            <div class="city-dropdown empty"
+              *ngIf="showCityDropdown && filteredCities.length === 0 && cities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">شهری یافت نشد</div>
+            </div>
+            <div class="city-dropdown empty" *ngIf="showCityDropdown && cities.length === 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">در حال بارگذاری شهرها...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="isActive">
+            <span>کلینیک فعال است</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancel()">انصراف</button>
+        <button type="submit" class="btn btn-primary" [disabled]="clinicForm.invalid || isLoading">
+          {{ isEditMode ? 'ذخیره تغییرات' : 'افزودن' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>در حال بارگذاری...</p>
+  </div>
+</div>

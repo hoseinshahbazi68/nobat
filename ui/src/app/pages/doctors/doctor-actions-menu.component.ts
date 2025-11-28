@@ -21,6 +21,10 @@ import { DoctorListDto } from '../../models/doctor.model';
         <span class="icon">🏥</span>
         <span>اطلاعات ویزیت</span>
       </button>
+      <button class="menu-item" (click)="onAction('change-password')">
+        <span class="icon">🔒</span>
+        <span>تغییر کلمه عبور</span>
+      </button>
       <button class="menu-item delete" (click)="onAction('delete')">
         <span class="icon">🗑️</span>
         <span>حذف</span>

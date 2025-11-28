@@ -83,7 +83,7 @@ export interface WeeklyDayScheduleDialogData {
                   ساعت شروع
                 </label>
                 <div class="time-input-wrapper">
-                  <input type="time" formControlName="startTime" class="time-input">
+                  <input type="text" formControlName="startTime" class="time-input" appTimeMask placeholder="00:00" maxlength="5">
                 </div>
               </div>
 
@@ -93,7 +93,7 @@ export interface WeeklyDayScheduleDialogData {
                   ساعت پایان
                 </label>
                 <div class="time-input-wrapper">
-                  <input type="time" formControlName="endTime" class="time-input">
+                  <input type="text" formControlName="endTime" class="time-input" appTimeMask placeholder="00:00" maxlength="5">
                 </div>
               </div>
             </div>
@@ -304,19 +304,27 @@ export interface WeeklyDayScheduleDialogData {
 
     .time-input {
       width: 100%;
-      padding: 12px 40px 12px 14px;
+      padding: 12px 14px;
       border: 2px solid #dee2e6;
       border-radius: 8px;
       font-size: 0.95rem;
       font-family: 'Vazirmatn', sans-serif;
       background: white;
       transition: all 0.3s ease;
+      direction: ltr;
+      text-align: center;
+      letter-spacing: 2px;
     }
 
     .time-input:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+
+    .time-input::placeholder {
+      color: #adb5bd;
+      letter-spacing: normal;
     }
 
     .time-icon {
@@ -536,7 +544,9 @@ export class WeeklyDayScheduleDialogComponent implements OnInit {
     // وقتی شیفت انتخاب می‌شود، زمان‌های پیش‌فرض شیفت را تنظیم کن
     this.dayForm.get('shiftId')?.valueChanges.subscribe(shiftId => {
       if (shiftId) {
-        const shift = this.data.shifts.find(s => s.id === shiftId);
+        // تبدیل shiftId به number برای مقایسه صحیح
+        const shiftIdNum = typeof shiftId === 'string' ? parseInt(shiftId, 10) : shiftId;
+        const shift = this.data.shifts.find(s => s.id === shiftIdNum);
         if (shift && shift.startTime && shift.endTime) {
           // تنظیم زمان‌های پیش‌فرض از شیفت
           this.dayForm.patchValue({
@@ -544,6 +554,12 @@ export class WeeklyDayScheduleDialogComponent implements OnInit {
             endTime: shift.endTime
           }, { emitEvent: false });
         }
+      } else {
+        // اگر شیفت انتخاب نشده، فیلدهای زمان را خالی کن
+        this.dayForm.patchValue({
+          startTime: '',
+          endTime: ''
+        }, { emitEvent: false });
       }
     });
   }
@@ -557,6 +573,19 @@ export class WeeklyDayScheduleDialogComponent implements OnInit {
         endTime: this.data.schedule.endTime || '',
         count: this.data.schedule.count || 1
       });
+    }
+
+    // اگر شیفت انتخاب شده اما زمان‌ها خالی هستند، از شیفت پر کن
+    const shiftId = this.dayForm.get('shiftId')?.value;
+    if (shiftId && (!this.dayForm.get('startTime')?.value || !this.dayForm.get('endTime')?.value)) {
+      const shiftIdNum = typeof shiftId === 'string' ? parseInt(shiftId, 10) : shiftId;
+      const shift = this.data.shifts.find(s => s.id === shiftIdNum);
+      if (shift && shift.startTime && shift.endTime) {
+        this.dayForm.patchValue({
+          startTime: shift.startTime,
+          endTime: shift.endTime
+        }, { emitEvent: false });
+      }
     }
   }
 

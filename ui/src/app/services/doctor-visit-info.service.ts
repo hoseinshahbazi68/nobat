@@ -9,26 +9,26 @@ import { PagedResult } from '../models/paged-result.model';
 })
 export class DoctorVisitInfoService extends BaseApiService {
   getAll(params?: any): Observable<PagedResult<DoctorVisitInfo>> {
-    return this.get<PagedResult<DoctorVisitInfo>>('doctor-visit-infos', params);
+    return this.get<PagedResult<DoctorVisitInfo>>('DoctorVisitInfos', params);
   }
 
   getById(id: number): Observable<DoctorVisitInfo> {
-    return this.get<DoctorVisitInfo>(`doctor-visit-infos/${id}`);
+    return this.get<DoctorVisitInfo>(`DoctorVisitInfos/${id}`);
   }
 
   getByDoctorId(doctorId: number): Observable<DoctorVisitInfo> {
-    return this.get<DoctorVisitInfo>(`doctor-visit-infos/by-doctor/${doctorId}`);
+    return this.get<DoctorVisitInfo>(`DoctorVisitInfos/by-doctor/${doctorId}`);
   }
 
   create(data: CreateDoctorVisitInfoRequest): Observable<DoctorVisitInfo> {
-    return this.post<DoctorVisitInfo>('doctor-visit-infos', data);
+    return this.post<DoctorVisitInfo>('DoctorVisitInfos', data);
   }
 
   update(data: UpdateDoctorVisitInfoRequest): Observable<DoctorVisitInfo> {
-    return this.put<DoctorVisitInfo>(`doctor-visit-infos/${data.id}`, data);
+    return this.put<DoctorVisitInfo>(`DoctorVisitInfos/${data.id}`, data);
   }
 
   delete(id: number): Observable<boolean> {
-    return this.deleteRequest<boolean>(`doctor-visit-infos/${id}`);
+    return this.deleteRequest<boolean>(`DoctorVisitInfos/${id}`);
   }
 }

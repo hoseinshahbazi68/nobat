@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { BaseApiService } from './base-api.service';
-import { User, CreateUserRequest, UpdateUserRequest } from '../models/user.model';
 import { Clinic } from '../models/clinic.model';
 import { PagedResult } from '../models/paged-result.model';
+import { CreateUserRequest, UpdateUserRequest, User } from '../models/user.model';
+import { BaseApiService } from './base-api.service';
 
 export interface UserQueryParams {
   page?: number;
@@ -50,5 +50,9 @@ export class UserService extends BaseApiService {
 
   removeClinicFromUser(userId: number, clinicId: number): Observable<void> {
     return this.deleteRequest<void>(`users/${userId}/clinics/${clinicId}`);
+  }
+
+  changeUserPassword(userId: number, newPassword: string): Observable<void> {
+    return this.put<void>(`users/${userId}/password`, { newPassword: newPassword });
   }
 }

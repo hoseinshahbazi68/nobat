@@ -36,6 +36,7 @@ export interface DoctorSchedule {
   count: number;
   serviceId: number;
   serviceName?: string;
+  clinicId?: number;
 }
 
 export interface CreateDoctorScheduleRequest {
@@ -46,6 +47,7 @@ export interface CreateDoctorScheduleRequest {
   endTime: string;
   count: number;
   serviceId: number;
+  clinicId?: number;
 }
 
 export interface UpdateDoctorScheduleRequest {
@@ -57,6 +59,7 @@ export interface UpdateDoctorScheduleRequest {
   endTime: string;
   count: number;
   serviceId: number;
+  clinicId?: number;
 }
 
 export interface WeeklySchedule {

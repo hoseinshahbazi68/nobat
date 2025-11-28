@@ -118,7 +118,7 @@ public class ChatService : IChatService
 
             // بررسی اینکه آیا قبلاً در این جلسه پیامی برای کارشناس ارسال شده است
             // اگر بله، دیگر chatbot بررسی نمی‌شود و تمام پیام‌ها مستقیماً برای کارشناس ارسال می‌شوند
-            var query = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var query = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var expirationDate = DateTime.UtcNow.AddDays(-3);
 
             // بررسی اینکه آیا پیام کاربری وجود دارد که برای کارشناس ارسال شده (خوانده نشده)
@@ -332,7 +332,7 @@ public class ChatService : IChatService
                 phoneNumber = chatSessionId.Substring(5); // حذف "chat-" از ابتدا
             }
 
-            var query = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var query = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             // فیلتر پیام‌های قدیمی‌تر از 3 روز را حذف می‌کنیم
             var expirationDate = DateTime.UtcNow.AddDays(-3);
@@ -433,8 +433,8 @@ public class ChatService : IChatService
     {
         try
         {
-            var sessionQuery = await _chatSessionRepository.GetQueryableAsync(cancellationToken);
-            var messageQuery = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var sessionQuery = await _chatSessionRepository.GetQueryableNoTrackingAsync(cancellationToken);
+            var messageQuery = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             // فیلتر بر اساس PhoneNumber اگر مشخص شده باشد
             if (!string.IsNullOrEmpty(phoneNumber))
@@ -514,7 +514,7 @@ public class ChatService : IChatService
                 phoneNumber = chatSessionId.Substring(5); // حذف "chat-" از ابتدا
             }
 
-            var query = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var query = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var messages = await query
                 .Where(m => m.PhoneNumber == phoneNumber && !m.IsRead)
                 .ToListAsync(cancellationToken);
@@ -548,7 +548,7 @@ public class ChatService : IChatService
     {
         try
         {
-            var query = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var query = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var expirationDate = DateTime.UtcNow.AddDays(-3);
 
             // دریافت پیام‌های قدیمی‌تر از 3 روز
@@ -579,8 +579,8 @@ public class ChatService : IChatService
     {
         try
         {
-            var sessionQuery = await _chatSessionRepository.GetQueryableAsync(cancellationToken);
-            var messageQuery = await _chatRepository.GetQueryableAsync(cancellationToken);
+            var sessionQuery = await _chatSessionRepository.GetQueryableNoTrackingAsync(cancellationToken);
+            var messageQuery = await _chatRepository.GetQueryableNoTrackingAsync(cancellationToken);
 
             // فیلتر پیام‌های قدیمی‌تر از 3 روز را حذف می‌کنیم
             var expirationDate = DateTime.UtcNow.AddDays(-3);

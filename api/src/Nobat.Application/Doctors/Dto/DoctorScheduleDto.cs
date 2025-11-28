@@ -122,7 +122,7 @@ public class CreateDoctorScheduleDto
     /// <summary>
     /// شناسه کلینیک (اختیاری - اگر null باشد، مطب شخصی پزشک است)
     /// </summary>
-    public int? ClinicId { get; set; }
+    public int ClinicId { get; set; }
 
     /// <summary>
     /// شناسه خدمت

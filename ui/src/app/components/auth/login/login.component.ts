@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { SnackbarService } from '../../../services/snackbar.service';
@@ -10,7 +10,7 @@ import { LoginRequest } from '../../../models/auth.model';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   loginForm: FormGroup;
 
   isLoading = false;
@@ -23,17 +23,63 @@ export class LoginComponent {
   ) {
     this.loginForm = this.fb.group({
       nationalCode: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      rememberMe: [false]
     });
+  }
+
+  ngOnInit() {
+    // بارگذاری اطلاعات ذخیره شده در صورت وجود
+    const savedCredentials = this.getSavedCredentials();
+    if (savedCredentials) {
+      this.loginForm.patchValue({
+        nationalCode: savedCredentials.nationalCode,
+        password: savedCredentials.password,
+        rememberMe: true
+      });
+    }
+  }
+
+  private getSavedCredentials(): { nationalCode: string; password: string } | null {
+    try {
+      const saved = localStorage.getItem('rememberedCredentials');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    }
+    return null;
+  }
+
+  private saveCredentials(nationalCode: string, password: string) {
+    try {
+      const credentials = { nationalCode, password };
+      localStorage.setItem('rememberedCredentials', JSON.stringify(credentials));
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+    }
+  }
+
+  private clearSavedCredentials() {
+    localStorage.removeItem('rememberedCredentials');
   }
 
   onSubmit() {
     if (this.loginForm.valid) {
       this.isLoading = true;
+      const formValue = this.loginForm.value;
       const loginData: LoginRequest = {
-        nationalCode: this.loginForm.value.nationalCode,
-        password: this.loginForm.value.password
+        nationalCode: formValue.nationalCode,
+        password: formValue.password
       };
+
+      // ذخیره یا حذف اطلاعات بر اساس انتخاب کاربر
+      if (formValue.rememberMe) {
+        this.saveCredentials(formValue.nationalCode, formValue.password);
+      } else {
+        this.clearSavedCredentials();
+      }
 
       this.authService.login(loginData).subscribe({
         next: () => {

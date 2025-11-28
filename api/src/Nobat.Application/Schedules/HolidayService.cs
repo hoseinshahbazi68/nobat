@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Nobat.Application.Schedules.Dto;
 using Nobat.Domain.Entities.Schedules;
@@ -71,7 +72,7 @@ public class HolidayService : IHolidayService
     /// <returns>روز تعطیل یافت شده یا null</returns>
     public async Task<HolidayDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        var holiday = await _repository.GetByIdAsync(id, cancellationToken);
+        var holiday = await _repository.GetByIdNoTrackingAsync(id, cancellationToken);
         if (holiday == null)
             return null;
 
@@ -88,11 +89,20 @@ public class HolidayService : IHolidayService
     /// <returns>نتیجه صفحه‌بندی شده</returns>
     public async Task<PagedResult<HolidayDto>> GetAllAsync(SieveModel sieveModel, CancellationToken cancellationToken = default)
     {
-        var query = await _repository.GetQueryableAsync(cancellationToken);
+        var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
 
-        var totalCount = query.Count();
+        // اعمال فیلتر و مرتب‌سازی
         var filteredQuery = _sieveProcessor.Apply(sieveModel, query);
-        var holidays = filteredQuery.ToList();
+        var holidays = await filteredQuery.ToListAsync(cancellationToken);
+
+        // محاسبه تعداد کل بعد از فیلتر اما قبل از صفحه‌بندی
+        var countModel = new SieveModel
+        {
+            Filters = sieveModel.Filters,
+            Sorts = sieveModel.Sorts
+        };
+        var countQuery = _sieveProcessor.Apply(countModel, query);
+        var totalCount = await countQuery.CountAsync(cancellationToken);
 
         var result = new PagedResult<HolidayDto>
         {

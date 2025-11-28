@@ -28,6 +28,7 @@ public class DoctorScheduleService : IDoctorScheduleService
     private readonly IRepository<Doctor> _doctorRepository;
     private readonly IRepository<Shift> _shiftRepository;
     private readonly IRepository<Service> _serviceRepository;
+    private readonly IRepository<ServiceTariff> _serviceTariffRepository;
     private readonly IMapper _mapper;
     private readonly ISieveProcessor _sieveProcessor;
     private readonly ILogger<DoctorScheduleService> _logger;
@@ -38,6 +39,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         IRepository<Doctor> doctorRepository,
         IRepository<Shift> shiftRepository,
         IRepository<Service> serviceRepository,
+        IRepository<ServiceTariff> serviceTariffRepository,
         IMapper mapper,
         ISieveProcessor sieveProcessor,
         ILogger<DoctorScheduleService> logger,
@@ -47,6 +49,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         _doctorRepository = doctorRepository;
         _shiftRepository = shiftRepository;
         _serviceRepository = serviceRepository;
+        _serviceTariffRepository = serviceTariffRepository;
         _mapper = mapper;
         _sieveProcessor = sieveProcessor;
         _logger = logger;
@@ -57,7 +60,7 @@ public class DoctorScheduleService : IDoctorScheduleService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             var schedule = await query
                 .Include(s => s.Doctor)
                 .Include(s => s.Shift)
@@ -84,7 +87,7 @@ public class DoctorScheduleService : IDoctorScheduleService
     {
         try
         {
-            var query = await _repository.GetQueryableAsync(cancellationToken);
+            var query = await _repository.GetQueryableNoTrackingAsync(cancellationToken);
             query = query
                 .Include(s => s.Doctor)
                 .Include(s => s.Shift)
@@ -147,6 +150,17 @@ public class DoctorScheduleService : IDoctorScheduleService
     {
         try
         {
+            if(dto.ClinicId==0)
+                return ApiResponse<DoctorScheduleDto>.Error("کلینک انتخاب نشده است", 400);
+
+            // بررسی وجود تعرفه برای پزشک، کلینیک و خدمت
+            var hasTariff = await CheckTariffExistsAsync(dto.DoctorId, dto.ClinicId, dto.ServiceId, cancellationToken);
+            if (!hasTariff)
+            {
+                var errorMessage = $"برای پزشک، کلینیک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید.";
+                return ApiResponse<DoctorScheduleDto>.Error(errorMessage, 400);
+            }
+
             var schedule = new DoctorSchedule
             {
                 DoctorId = dto.DoctorId,
@@ -189,6 +203,20 @@ public class DoctorScheduleService : IDoctorScheduleService
             if (schedule == null)
             {
                 return ApiResponse<DoctorScheduleDto>.Error($"برنامه پزشک با شناسه {dto.Id} یافت نشد", 404);
+            }
+
+            // بررسی وجود تعرفه برای پزشک، کلینیک و خدمت جدید (در صورت تغییر)
+            // اگر پزشک، کلینیک یا خدمت تغییر کرده باشد، باید تعرفه جدید بررسی شود
+            if (schedule.DoctorId != dto.DoctorId || schedule.ClinicId != dto.ClinicId || schedule.ServiceId != dto.ServiceId)
+            {
+                var hasTariff = await CheckTariffExistsAsync(dto.DoctorId, dto.ClinicId, dto.ServiceId, cancellationToken);
+                if (!hasTariff)
+                {
+                    var errorMessage = dto.ClinicId.HasValue
+                        ? $"برای پزشک، کلینیک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید."
+                        : $"برای پزشک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید.";
+                    return ApiResponse<DoctorScheduleDto>.Error(errorMessage, 400);
+                }
             }
 
             schedule.DoctorId = dto.DoctorId;
@@ -250,6 +278,16 @@ public class DoctorScheduleService : IDoctorScheduleService
     /// <returns>لیست برنامه‌های تولید شده</returns>
     public async Task<ApiResponse<List<DoctorScheduleDto>>> GenerateScheduleAsync(GenerateScheduleDto dto, CancellationToken cancellationToken = default)
     {
+        // بررسی وجود تعرفه برای پزشک، کلینیک و خدمت قبل از تولید برنامه‌ها
+        var hasTariff = await CheckTariffExistsAsync(dto.DoctorId, dto.ClinicId, dto.ServiceId, cancellationToken);
+        if (!hasTariff)
+        {
+            var errorMessage = dto.ClinicId.HasValue
+                ? $"برای پزشک، کلینیک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید."
+                : $"برای پزشک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید.";
+            return ApiResponse<List<DoctorScheduleDto>>.Error(errorMessage, 400);
+        }
+
         var schedules = new List<DoctorSchedule>();
 
         var shifts = new List<Shift>();
@@ -298,6 +336,38 @@ public class DoctorScheduleService : IDoctorScheduleService
 
         var scheduleDtos = createdSchedules.Select(MapToDto).ToList();
         return ApiResponse<List<DoctorScheduleDto>>.Success(scheduleDtos, $"{scheduleDtos.Count} برنامه با موفقیت تولید شد");
+    }
+
+    /// <summary>
+    /// بررسی وجود تعرفه برای پزشک، کلینیک و خدمت
+    /// </summary>
+    /// <param name="doctorId">شناسه پزشک</param>
+    /// <param name="clinicId">شناسه کلینیک (اختیاری)</param>
+    /// <param name="serviceId">شناسه خدمت</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>true اگر تعرفه وجود داشته باشد، در غیر این صورت false</returns>
+    private async Task<bool> CheckTariffExistsAsync(int doctorId, int? clinicId, int serviceId, CancellationToken cancellationToken = default)
+    {
+        var tariffQuery = await _serviceTariffRepository.GetQueryableNoTrackingAsync(cancellationToken);
+
+        if (clinicId.HasValue)
+        {
+            // بررسی تعرفه برای پزشک، کلینیک و خدمت مشخص
+            // تعرفه می‌تواند مخصوص پزشک باشد (DoctorId == doctorId) یا عمومی برای کلینیک باشد (DoctorId == null)
+            return await tariffQuery.AnyAsync(
+                t => t.ServiceId == serviceId &&
+                     t.ClinicId == clinicId.Value &&
+                     (t.DoctorId == doctorId || t.DoctorId == null),
+                cancellationToken);
+        }
+        else
+        {
+            // اگر کلینیک مشخص نشده باشد، بررسی تعرفه‌های عمومی برای پزشک و خدمت
+            return await tariffQuery.AnyAsync(
+                t => t.ServiceId == serviceId &&
+                     t.DoctorId == doctorId,
+                cancellationToken);
+        }
     }
 
     /// <summary>

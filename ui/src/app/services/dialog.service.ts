@@ -99,9 +99,25 @@ export class DialogService {
       if ('user' in instance) {
         instance.user = config.data;
       }
+      // Also set clinic property if it exists (for ClinicUsersDialogComponent)
+      if ('clinic' in instance) {
+        instance.clinic = config.data;
+      }
       // Also set specialty property if it exists (for SpecialtyMedicalConditionsDialogComponent)
       if ('specialty' in instance) {
         instance.specialty = config.data;
+      }
+      // Also set doctor property if it exists (for AdminChangeDoctorPasswordDialogComponent)
+      if ('doctor' in instance) {
+        instance.doctor = config.data?.doctor || config.data;
+      }
+      // Also set userId property if it exists (for AdminChangeDoctorPasswordDialogComponent)
+      if ('userId' in instance) {
+        // Try to get userId from config.data.userId (when passed as {doctor, userId}) or from config.data.userId (when passed as doctor object)
+        const userId = config.data?.userId ?? config.data?.doctor?.userId;
+        if (userId !== undefined && userId !== null) {
+          instance.userId = userId;
+        }
       }
     }
 

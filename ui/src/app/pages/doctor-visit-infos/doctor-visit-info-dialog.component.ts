@@ -28,7 +28,11 @@ import { Doctor } from '../../models/doctor.model';
           <div class="form-row">
             <div class="form-field full-width">
               <label>درباره پزشک</label>
-              <textarea formControlName="about" rows="4" placeholder="درباره پزشک را وارد کنید"></textarea>
+              <app-rich-text-editor
+                [value]="visitInfoForm.get('about')?.value || ''"
+                placeholder="درباره پزشک را وارد کنید..."
+                (valueChange)="visitInfoForm.patchValue({ about: $event })">
+              </app-rich-text-editor>
             </div>
           </div>
 

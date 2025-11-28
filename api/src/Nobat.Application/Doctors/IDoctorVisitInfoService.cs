@@ -1,5 +1,6 @@
 using Nobat.Application.Common;
 using Nobat.Application.Doctors.Dto;
+using Sieve.Models;
 
 namespace Nobat.Application.Doctors;
 

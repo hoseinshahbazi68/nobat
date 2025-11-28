@@ -6,11 +6,6 @@ namespace Nobat.Application.Appointments.Dto;
 public class CreateAppointmentDto
 {
     /// <summary>
-    /// شناسه پزشک
-    /// </summary>
-    public int DoctorId { get; set; }
-
-    /// <summary>
     /// شناسه برنامه پزشک
     /// </summary>
     public int DoctorScheduleId { get; set; }

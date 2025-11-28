@@ -267,3 +267,14 @@ public class UpdateProfileDto
         /// </summary>
         public int ClinicId { get; set; }
     }
+
+    /// <summary>
+    /// DTO تغییر رمز عبور کاربر توسط ادمین (بدون نیاز به رمز عبور فعلی)
+    /// </summary>
+    public class ResetUserPasswordDto
+    {
+        /// <summary>
+        /// رمز عبور جدید
+        /// </summary>
+        public string NewPassword { get; set; } = string.Empty;
+    }

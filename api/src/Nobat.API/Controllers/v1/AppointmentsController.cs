@@ -59,7 +59,6 @@ public class AppointmentsController : BaseController
 
             var appointment = new Appointment
             {
-                DoctorId = dto.DoctorId,
                 DoctorScheduleId = dto.DoctorScheduleId,
                 AppointmentDateTime = dto.AppointmentDateTime,
                 ExpireDateTime = dto.ExpireDateTime,

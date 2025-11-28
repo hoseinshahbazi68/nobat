@@ -17,6 +17,12 @@ export class ServicesComponent implements OnInit {
   filterValue: string = '';
   isLoading = false;
 
+  // Pagination properties
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
+
   constructor(
     private dialogService: DialogService,
     private snackbarService: SnackbarService,
@@ -29,14 +35,28 @@ export class ServicesComponent implements OnInit {
 
   loadServices() {
     this.isLoading = true;
-    this.serviceService.getAll({ page: 1, pageSize: 100 }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // Add filter if exists
+    if (this.filterValue && this.filterValue.trim()) {
+      const searchTerm = this.filterValue.trim();
+      // جستجو در name و description
+      params.filters = `Name@=*${searchTerm}*|Description@=*${searchTerm}*`;
+    }
+
+    this.serviceService.getAll(params).subscribe({
       next: (result) => {
         if (result && result.items) {
           this.services = result.items;
           this.filteredServices = [...this.services];
+          this.totalCount = result.totalCount;
+          this.totalPages = result.totalPages;
+          this.currentPage = result.page;
         } else {
           this.services = [];
           this.filteredServices = [];
+          this.totalCount = 0;
+          this.totalPages = 0;
         }
         this.isLoading = false;
       },
@@ -46,6 +66,17 @@ export class ServicesComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadServices();
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.loadServices();
   }
 
   openAddDialog() {
@@ -84,9 +115,11 @@ export class ServicesComponent implements OnInit {
         if (result) {
           this.serviceService.delete(service.id!).subscribe({
             next: () => {
-              this.services = this.services.filter(s => s.id !== service.id);
-              this.filteredServices = [...this.services];
-              this.applyFilter();
+              // If current page becomes empty after deletion, go to previous page
+              if (this.services.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadServices();
               this.snackbarService.success('خدمت با موفقیت حذف شد', 'بستن', 3000);
             },
             error: (error) => {
@@ -127,14 +160,8 @@ export class ServicesComponent implements OnInit {
   }
 
   applyFilter() {
-    if (!this.filterValue.trim()) {
-      this.filteredServices = [...this.services];
-      return;
-    }
-    const filter = this.filterValue.trim().toLowerCase();
-    this.filteredServices = this.services.filter(service =>
-      service.name.toLowerCase().includes(filter) ||
-      (service.description && service.description.toLowerCase().includes(filter))
-    );
+    // Reset to first page when filtering
+    this.currentPage = 1;
+    this.loadServices();
   }
 }

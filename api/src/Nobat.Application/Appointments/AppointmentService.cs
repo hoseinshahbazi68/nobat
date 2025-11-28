@@ -3,8 +3,10 @@ using Microsoft.Extensions.Logging;
 using Nobat.Application.Appointments.Dto;
 using Nobat.Application.Common;
 using Nobat.Domain.Entities.Appointments;
+using Nobat.Domain.Entities.Clinics;
 using Nobat.Domain.Entities.Doctors;
 using Nobat.Domain.Entities.Schedules;
+using Nobat.Domain.Entities.Services;
 using Nobat.Domain.Enums;
 using Nobat.Domain.Interfaces;
 
@@ -20,6 +22,7 @@ public class AppointmentService : IAppointmentService
     private readonly IRepository<Appointment> _appointmentRepository;
     private readonly IRepository<DoctorSchedule> _doctorScheduleRepository;
     private readonly IRepository<Holiday> _holidayRepository;
+    private readonly IRepository<ServiceTariff> _serviceTariffRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AppointmentService> _logger;
 
@@ -27,12 +30,14 @@ public class AppointmentService : IAppointmentService
         IRepository<Appointment> appointmentRepository,
         IRepository<DoctorSchedule> doctorScheduleRepository,
         IRepository<Holiday> holidayRepository,
+        IRepository<ServiceTariff> serviceTariffRepository,
         IUnitOfWork unitOfWork,
         ILogger<AppointmentService> logger)
     {
         _appointmentRepository = appointmentRepository;
         _doctorScheduleRepository = doctorScheduleRepository;
         _holidayRepository = holidayRepository;
+        _serviceTariffRepository = serviceTariffRepository;
         _unitOfWork = unitOfWork;
         _logger = logger;
     }
@@ -44,6 +49,23 @@ public class AppointmentService : IAppointmentService
     {
         try
         {
+            // دریافت برنامه پزشک برای دسترسی به کلینیک
+            var doctorSchedule = await _doctorScheduleRepository.GetByIdAsync(appointment.DoctorScheduleId, cancellationToken);
+            if (doctorSchedule == null)
+            {
+                return ApiResponse<Appointment>.Error("برنامه پزشک یافت نشد", 404);
+            }
+
+            // بررسی وجود تعرفه برای پزشک، کلینیک و خدمت
+            var hasTariff = await CheckTariffExistsAsync(doctorSchedule.DoctorId, doctorSchedule.ClinicId, doctorSchedule.ServiceId, cancellationToken);
+            if (!hasTariff)
+            {
+                var errorMessage = doctorSchedule.ClinicId.HasValue
+                    ? $"برای پزشک، کلینیک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید."
+                    : $"برای پزشک و خدمت مورد نظر تعرفه‌ای تعریف نشده است. لطفاً ابتدا تعرفه را تعریف کنید.";
+                return ApiResponse<Appointment>.Error(errorMessage, 400);
+            }
+
             await _appointmentRepository.AddAsync(appointment, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -64,7 +86,7 @@ public class AppointmentService : IAppointmentService
     /// </summary>
     public async Task<bool> ExistsAsync(int doctorScheduleId, DateTime appointmentDateTime, CancellationToken cancellationToken = default)
     {
-        var query = await _appointmentRepository.GetQueryableAsync(cancellationToken);
+        var query = await _appointmentRepository.GetQueryableNoTrackingAsync(cancellationToken);
         return await query.AnyAsync(
             a => a.DoctorScheduleId == doctorScheduleId &&
                  a.AppointmentDateTime.Date == appointmentDateTime.Date &&
@@ -82,21 +104,22 @@ public class AppointmentService : IAppointmentService
             var createdCount = 0;
 
             // دریافت تمام برنامه‌های پزشکان
-            var scheduleQuery = await _doctorScheduleRepository.GetQueryableAsync(cancellationToken);
+            var scheduleQuery = await _doctorScheduleRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var schedules = await scheduleQuery
                 .Include(s => s.Doctor)
                 .Include(s => s.Shift)
+                .Include(s => s.Clinic)
                 .ToListAsync(cancellationToken);
 
             // دریافت تمام روزهای تعطیل
-            var holidayQuery = await _holidayRepository.GetQueryableAsync(cancellationToken);
+            var holidayQuery = await _holidayRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var holidays = await holidayQuery
                 .Where(h => h.Date >= startDate.Date && h.Date <= endDate.Date)
                 .Select(h => h.Date.Date)
                 .ToListAsync(cancellationToken);
 
             // دریافت نوبت‌های موجود برای جلوگیری از ایجاد تکراری
-            var appointmentQuery = await _appointmentRepository.GetQueryableAsync(cancellationToken);
+            var appointmentQuery = await _appointmentRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var existingAppointments = await appointmentQuery
                 .Where(a => a.AppointmentDateTime >= startDate && a.AppointmentDateTime <= endDate)
                 .Select(a => new { a.DoctorScheduleId, a.AppointmentDateTime.Date, a.StartTime })
@@ -109,8 +132,51 @@ public class AppointmentService : IAppointmentService
             // برای هر برنامه پزشک
             foreach (var schedule in schedules)
             {
+                // بررسی وجود تعرفه برای پزشک، کلینیک و خدمت قبل از تولید نوبت‌ها
+                var hasTariff = await CheckTariffExistsAsync(schedule.DoctorId, schedule.ClinicId, schedule.ServiceId, cancellationToken);
+                if (!hasTariff)
+                {
+                    _logger.LogWarning(
+                        "Skipping schedule {ScheduleId} for doctor {DoctorId}, clinic {ClinicId} and service {ServiceId} - no tariff defined",
+                        schedule.Id, schedule.DoctorId, schedule.ClinicId, schedule.ServiceId);
+                    continue;
+                }
+
+                // دریافت VisitDuration از ServiceTariff
+                var visitDuration = await GetVisitDurationAsync(schedule.DoctorId, schedule.ClinicId, schedule.ServiceId, cancellationToken);
+
+                // بررسی محدودیت AppointmentGenerationDays برای کلینیک
+                // تاریخ شروع باید از امروز باشد
+                DateTime effectiveStartDate = startDate < DateTime.Today ? DateTime.Today : startDate.Date;
+                DateTime effectiveEndDate = endDate;
+
+                if (schedule.ClinicId.HasValue && schedule.Clinic != null)
+                {
+                    var appointmentGenerationDays = schedule.Clinic.AppointmentGenerationDays;
+                    if (appointmentGenerationDays.HasValue)
+                    {
+                        var maxAllowedDate = DateTime.Today.AddDays(appointmentGenerationDays.Value);
+                        if (endDate > maxAllowedDate)
+                        {
+                            effectiveEndDate = maxAllowedDate;
+                            _logger.LogInformation(
+                                "Limiting appointment generation for clinic {ClinicId} (Schedule {ScheduleId}) to {MaxDate} based on AppointmentGenerationDays: {Days}",
+                                schedule.ClinicId, schedule.Id, maxAllowedDate, appointmentGenerationDays.Value);
+                        }
+                    }
+                }
+
+                // اگر تاریخ شروع موثر بعد از تاریخ پایان موثر باشد، این schedule را رد می‌کنیم
+                if (effectiveStartDate > effectiveEndDate)
+                {
+                    _logger.LogWarning(
+                        "Skipping schedule {ScheduleId} - effective start date {StartDate} is after effective end date {EndDate}",
+                        schedule.Id, effectiveStartDate, effectiveEndDate);
+                    continue;
+                }
+
                 // تولید نوبت‌ها برای هر روز در بازه زمانی
-                for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+                for (var date = effectiveStartDate; date <= effectiveEndDate; date = date.AddDays(1))
                 {
                     // بررسی اینکه آیا این روز تعطیل است
                     if (holidays.Contains(date))
@@ -133,14 +199,60 @@ public class AppointmentService : IAppointmentService
                     var expireDateTime = date.Date + schedule.EndTime;
 
                     // محاسبه فاصله زمانی بین نوبت‌ها
-                    var timeSlotDuration = schedule.EndTime - schedule.StartTime;
-                    var slotDuration = timeSlotDuration.TotalMinutes / schedule.Count;
+                    // اگر VisitDuration از ServiceTariff موجود باشد، از آن استفاده می‌کنیم
+                    // در غیر این صورت از منطق قبلی (تقسیم زمان بر Count) استفاده می‌کنیم
+                    double slotDuration;
+                    int appointmentCount;
+                    TimeSpan currentStartTime = schedule.StartTime;
 
-                    // ایجاد نوبت‌ها بر اساس Count
-                    for (int i = 0; i < schedule.Count; i++)
+                    if (visitDuration.HasValue && visitDuration.Value > 0)
                     {
-                        var slotStartTime = schedule.StartTime.Add(TimeSpan.FromMinutes(slotDuration * i));
+                        // استفاده از VisitDuration از ServiceTariff
+                        slotDuration = visitDuration.Value;
+                        var totalDuration = (schedule.EndTime - schedule.StartTime).TotalMinutes;
+                        appointmentCount = (int)Math.Floor(totalDuration / slotDuration);
+
+                        // اگر appointmentCount صفر یا منفی باشد، حداقل یک نوبت ایجاد می‌کنیم
+                        if (appointmentCount <= 0)
+                        {
+                            appointmentCount = 1;
+                        }
+                    }
+                    else
+                    {
+                        // استفاده از منطق قبلی (تقسیم زمان بر Count)
+                        var timeSlotDuration = schedule.EndTime - schedule.StartTime;
+                        slotDuration = timeSlotDuration.TotalMinutes / schedule.Count;
+                        appointmentCount = schedule.Count;
+                    }
+
+                    // ایجاد نوبت‌ها
+                    // هر نوبت از پایان نوبت قبلی شروع می‌شود (بدون فاصله)
+                    for (int i = 0; i < appointmentCount; i++)
+                    {
+                        // بررسی اینکه آیا زمان شروع از EndTime تجاوز کرده است
+                        if (currentStartTime >= schedule.EndTime)
+                        {
+                            break;
+                        }
+
+                        var slotStartTime = currentStartTime;
                         var slotEndTime = slotStartTime.Add(TimeSpan.FromMinutes(slotDuration));
+
+                        // بررسی اینکه آیا نوبت از EndTime تجاوز نمی‌کند
+                        bool isLastAppointment = false;
+                        if (slotEndTime > schedule.EndTime)
+                        {
+                            // اگر نوبت از EndTime تجاوز می‌کند، آن را تا EndTime محدود می‌کنیم
+                            slotEndTime = schedule.EndTime;
+                            isLastAppointment = true;
+                        }
+
+                        // بررسی اینکه آیا زمان شروع و پایان معتبر هستند
+                        if (slotStartTime >= slotEndTime)
+                        {
+                            break;
+                        }
 
                         var appointmentDate = date.Date + slotStartTime;
                         var appointmentExpireDate = date.Date + slotEndTime;
@@ -149,6 +261,8 @@ public class AppointmentService : IAppointmentService
                         var appointmentKey = (schedule.Id, appointmentDate.Date, slotStartTime);
                         if (existingAppointmentSet.Contains(appointmentKey))
                         {
+                            // برای نوبت بعدی، زمان شروع را برابر با پایان این نوبت قرار می‌دهیم
+                            currentStartTime = slotEndTime;
                             continue;
                         }
 
@@ -158,7 +272,6 @@ public class AppointmentService : IAppointmentService
                         // بنابراین نوبت‌های جدید را با Booked ایجاد می‌کنیم و بعداً می‌توانند رزرو شوند
                         var appointment = new Appointment
                         {
-                            DoctorId = schedule.DoctorId,
                             DoctorScheduleId = schedule.Id,
                             AppointmentDateTime = appointmentDate,
                             ExpireDateTime = appointmentExpireDate,
@@ -172,6 +285,15 @@ public class AppointmentService : IAppointmentService
 
                         // اضافه کردن به مجموعه برای جلوگیری از ایجاد تکراری در همان اجرا
                         existingAppointmentSet.Add(appointmentKey);
+
+                        // برای نوبت بعدی، زمان شروع را برابر با پایان این نوبت قرار می‌دهیم
+                        currentStartTime = slotEndTime;
+
+                        // اگر این آخرین نوبت بود (به EndTime رسیدیم)، از حلقه خارج می‌شویم
+                        if (isLastAppointment)
+                        {
+                            break;
+                        }
                     }
                 }
             }
@@ -198,9 +320,10 @@ public class AppointmentService : IAppointmentService
     {
         try
         {
-            var query = await _appointmentRepository.GetQueryableAsync(cancellationToken);
+            var query = await _appointmentRepository.GetQueryableNoTrackingAsync(cancellationToken);
             var appointments = await query
-                .Where(a => a.DoctorId == doctorId &&
+                .Include(a => a.DoctorSchedule)
+                .Where(a => a.DoctorSchedule.DoctorId == doctorId &&
                            a.AppointmentDateTime.Date >= startDate.Date &&
                            a.AppointmentDateTime.Date <= endDate.Date)
                 .ToListAsync(cancellationToken);
@@ -223,6 +346,88 @@ public class AppointmentService : IAppointmentService
         {
             _logger.LogError(ex, "Error getting appointment counts for doctor {DoctorId} from {StartDate} to {EndDate}", doctorId, startDate, endDate);
             return ApiResponse<List<Dto.AppointmentCountDto>>.Error("خطا در دریافت تعداد نوبت‌ها", ex);
+        }
+    }
+
+    /// <summary>
+    /// بررسی وجود تعرفه برای پزشک، کلینیک و خدمت
+    /// </summary>
+    /// <param name="doctorId">شناسه پزشک</param>
+    /// <param name="clinicId">شناسه کلینیک (اختیاری)</param>
+    /// <param name="serviceId">شناسه خدمت</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>true اگر تعرفه وجود داشته باشد، در غیر این صورت false</returns>
+    private async Task<bool> CheckTariffExistsAsync(int doctorId, int? clinicId, int serviceId, CancellationToken cancellationToken = default)
+    {
+        var tariffQuery = await _serviceTariffRepository.GetQueryableNoTrackingAsync(cancellationToken);
+
+        if (clinicId.HasValue)
+        {
+            // بررسی تعرفه برای پزشک، کلینیک و خدمت مشخص
+            // تعرفه می‌تواند مخصوص پزشک باشد (DoctorId == doctorId) یا عمومی برای کلینیک باشد (DoctorId == null)
+            return await tariffQuery.AnyAsync(
+                t => t.ServiceId == serviceId &&
+                     t.ClinicId == clinicId.Value &&
+                     (t.DoctorId == doctorId || t.DoctorId == null),
+                cancellationToken);
+        }
+        else
+        {
+            // اگر کلینیک مشخص نشده باشد، بررسی تعرفه‌های عمومی برای پزشک و خدمت
+            return await tariffQuery.AnyAsync(
+                t => t.ServiceId == serviceId &&
+                     t.DoctorId == doctorId,
+                cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// دریافت مدت زمان ویزیت (VisitDuration) از ServiceTariff
+    /// </summary>
+    /// <param name="doctorId">شناسه پزشک</param>
+    /// <param name="clinicId">شناسه کلینیک (اختیاری)</param>
+    /// <param name="serviceId">شناسه خدمت</param>
+    /// <param name="cancellationToken">توکن لغو عملیات</param>
+    /// <returns>مدت زمان ویزیت به دقیقه یا null اگر پیدا نشد</returns>
+    private async Task<int?> GetVisitDurationAsync(int doctorId, int? clinicId, int serviceId, CancellationToken cancellationToken = default)
+    {
+        var tariffQuery = await _serviceTariffRepository.GetQueryableNoTrackingAsync(cancellationToken);
+
+        if (clinicId.HasValue)
+        {
+            // اولویت با تعرفه مخصوص پزشک است، سپس تعرفه عمومی کلینیک
+            var doctorSpecificTariff = await tariffQuery
+                .Where(t => t.ServiceId == serviceId &&
+                           t.ClinicId == clinicId.Value &&
+                           t.DoctorId == doctorId &&
+                           t.VisitDuration.HasValue)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (doctorSpecificTariff != null)
+            {
+                return doctorSpecificTariff.VisitDuration;
+            }
+
+            // اگر تعرفه مخصوص پزشک پیدا نشد، تعرفه عمومی کلینیک را بررسی می‌کنیم
+            var clinicTariff = await tariffQuery
+                .Where(t => t.ServiceId == serviceId &&
+                           t.ClinicId == clinicId.Value &&
+                           t.DoctorId == null &&
+                           t.VisitDuration.HasValue)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return clinicTariff?.VisitDuration;
+        }
+        else
+        {
+            // اگر کلینیک مشخص نشده باشد، تعرفه‌های عمومی برای پزشک و خدمت را بررسی می‌کنیم
+            var tariff = await tariffQuery
+                .Where(t => t.ServiceId == serviceId &&
+                           t.DoctorId == doctorId &&
+                           t.VisitDuration.HasValue)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return tariff?.VisitDuration;
         }
     }
 

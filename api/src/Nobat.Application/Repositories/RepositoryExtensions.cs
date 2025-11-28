@@ -15,7 +15,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<User?> GetByNationalCodeAsync(this IRepository<User> repository, string nationalCode, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -38,7 +38,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<User?> GetByEmailAsync(this IRepository<User> repository, string email, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -52,7 +52,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<User?> GetWithRolesAsync(this IRepository<User> repository, int id, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -66,7 +66,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<User?> GetByPhoneNumberAsync(this IRepository<User> repository, string phoneNumber, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
@@ -78,7 +78,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<Role?> GetByNameAsync(this IRepository<Role> repository, string name, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .FirstOrDefaultAsync(r => r.Name == name, cancellationToken);
     }
@@ -88,7 +88,7 @@ public static class RepositoryExtensions
     /// </summary>
     public static async Task<ChatSession?> GetByPhoneNumberAsync(this IRepository<ChatSession> repository, string phoneNumber, CancellationToken cancellationToken = default)
     {
-        var queryable = await repository.GetQueryableAsync(cancellationToken);
+        var queryable = await repository.GetQueryableNoTrackingAsync(cancellationToken);
         return await queryable
             .FirstOrDefaultAsync(s => s.PhoneNumber == phoneNumber, cancellationToken);
     }

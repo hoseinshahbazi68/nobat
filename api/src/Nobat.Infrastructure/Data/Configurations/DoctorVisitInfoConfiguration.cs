@@ -16,7 +16,7 @@ public class DoctorVisitInfoConfiguration : IEntityTypeConfiguration<DoctorVisit
             .IsRequired();
 
         builder.Property(d => d.About)
-            .HasMaxLength(2000);
+            .HasMaxLength(10000);
 
         builder.Property(d => d.ClinicAddress)
             .HasMaxLength(500);

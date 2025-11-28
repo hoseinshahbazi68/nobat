@@ -28,16 +28,23 @@ export class SnackbarService {
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
       z-index: 99999;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 16px;
       min-width: 300px;
       max-width: 90vw;
       animation: slideUpSnackbar 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       font-family: 'Vazirmatn', sans-serif;
+      line-height: 1.6;
     `;
 
     const messageSpan = document.createElement('span');
-    messageSpan.textContent = message;
+    // اگر پیام شامل newline باشد، از innerHTML استفاده کن (برای نمایش خطاهای چندگانه)
+    if (message.includes('\n')) {
+      messageSpan.innerHTML = message.split('\n').map(line => line.trim()).filter(line => line).join('<br>');
+      messageSpan.style.whiteSpace = 'pre-line';
+    } else {
+      messageSpan.textContent = message;
+    }
     messageSpan.style.flex = '1';
     snackbar.appendChild(messageSpan);
 

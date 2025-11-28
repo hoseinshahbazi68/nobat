@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
 import { Clinic } from '../../models/clinic.model';
 import { DialogService } from '../../services/dialog.service';
 import { ClinicService } from '../../services/clinic.service';
 import { SnackbarService } from '../../services/snackbar.service';
-import { ClinicDialogComponent } from './clinic-dialog.component';
+import { ClinicUsersDialogComponent } from './clinic-users-dialog.component';
 
 @Component({
   selector: 'app-clinics',
@@ -17,7 +18,14 @@ export class ClinicsComponent implements OnInit {
   filterValue: string = '';
   isLoading = false;
 
+  // Pagination properties
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalCount: number = 0;
+  totalPages: number = 0;
+
   constructor(
+    private router: Router,
     private dialogService: DialogService,
     private snackbarService: SnackbarService,
     private clinicService: ClinicService
@@ -29,14 +37,28 @@ export class ClinicsComponent implements OnInit {
 
   loadClinics() {
     this.isLoading = true;
-    this.clinicService.getAll({ page: 1, pageSize: 100 }).subscribe({
+    const params: any = { page: this.currentPage, pageSize: this.pageSize };
+
+    // اضافه کردن فیلتر SieveModel اگر filterValue وجود دارد
+    if (this.filterValue && this.filterValue.trim()) {
+      const searchTerm = this.filterValue.trim();
+      // جستجو در name, address, phone, email, cityName
+      params.filters = `Name@=*${searchTerm}*|Address@=*${searchTerm}*|Phone@=*${searchTerm}*|Email@=*${searchTerm}*`;
+    }
+
+    this.clinicService.getAll(params).subscribe({
       next: (result) => {
         if (result && result.items) {
           this.clinics = result.items;
           this.filteredClinics = [...this.clinics];
+          this.totalCount = result.totalCount;
+          this.totalPages = result.totalPages;
+          this.currentPage = result.page;
         } else {
           this.clinics = [];
           this.filteredClinics = [];
+          this.totalCount = 0;
+          this.totalPages = 0;
         }
         this.isLoading = false;
       },
@@ -48,28 +70,25 @@ export class ClinicsComponent implements OnInit {
     });
   }
 
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadClinics();
+  }
+
+  onPageSizeChange(pageSize: number) {
+    this.pageSize = pageSize;
+    this.currentPage = 1;
+    this.loadClinics();
+  }
+
   openAddDialog() {
-    this.dialogService.open(ClinicDialogComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      data: null
-    }).subscribe(result => {
-      if (result) {
-        this.saveClinic(result);
-      }
-    });
+    this.router.navigate(['/panel/clinics/new']);
   }
 
   editClinic(clinic: Clinic) {
-    this.dialogService.open(ClinicDialogComponent, {
-      width: '600px',
-      maxWidth: '90vw',
-      data: clinic
-    }).subscribe(result => {
-      if (result) {
-        this.saveClinic(result, clinic.id);
-      }
-    });
+    if (clinic.id) {
+      this.router.navigate(['/panel/clinics', clinic.id]);
+    }
   }
 
   deleteClinic(clinic: Clinic) {
@@ -84,9 +103,11 @@ export class ClinicsComponent implements OnInit {
         if (result) {
           this.clinicService.delete(clinic.id!).subscribe({
             next: () => {
-              this.clinics = this.clinics.filter(c => c.id !== clinic.id);
-              this.filteredClinics = [...this.clinics];
-              this.applyFilter();
+              // اگر صفحه فعلی خالی شد و صفحه قبلی وجود دارد، به صفحه قبلی برو
+              if (this.clinics.length === 1 && this.currentPage > 1) {
+                this.currentPage--;
+              }
+              this.loadClinics();
               this.snackbarService.success('کلینیک با موفقیت حذف شد', 'بستن', 3000);
             },
             error: (error) => {
@@ -99,45 +120,20 @@ export class ClinicsComponent implements OnInit {
     }
   }
 
-  saveClinic(clinicData: any, id?: number) {
-    if (id) {
-      const updateData = { ...clinicData, id };
-      this.clinicService.update(updateData).subscribe({
-        next: () => {
-          this.snackbarService.success('کلینیک با موفقیت ویرایش شد', 'بستن', 3000);
-          this.loadClinics();
-        },
-        error: (error) => {
-          const errorMessage = error.error?.message || 'خطا در ویرایش کلینیک';
-          this.snackbarService.error(errorMessage, 'بستن', 5000);
-        }
-      });
-    } else {
-      this.clinicService.create(clinicData).subscribe({
-        next: () => {
-          this.snackbarService.success('کلینیک با موفقیت اضافه شد', 'بستن', 3000);
-          this.loadClinics();
-        },
-        error: (error) => {
-          const errorMessage = error.error?.message || 'خطا در افزودن کلینیک';
-          this.snackbarService.error(errorMessage, 'بستن', 5000);
-        }
-      });
-    }
-  }
 
   applyFilter() {
-    if (!this.filterValue.trim()) {
-      this.filteredClinics = [...this.clinics];
-      return;
-    }
-    const filter = this.filterValue.trim().toLowerCase();
-    this.filteredClinics = this.clinics.filter(clinic =>
-      clinic.name.toLowerCase().includes(filter) ||
-      (clinic.address && clinic.address.toLowerCase().includes(filter)) ||
-      (clinic.phone && clinic.phone.toLowerCase().includes(filter)) ||
-      (clinic.email && clinic.email.toLowerCase().includes(filter)) ||
-      (clinic.cityName && clinic.cityName.toLowerCase().includes(filter))
-    );
+    // بازنشانی به صفحه اول هنگام جستجو
+    this.currentPage = 1;
+    this.loadClinics();
+  }
+
+  openClinicUsersDialog(clinic: Clinic) {
+    this.dialogService.open(ClinicUsersDialogComponent, {
+      width: '700px',
+      maxWidth: '90vw',
+      data: clinic
+    }).subscribe(result => {
+      // Dialog closed
+    });
   }
 }

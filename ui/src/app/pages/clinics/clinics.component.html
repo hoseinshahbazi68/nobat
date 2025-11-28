@@ -9,9 +9,13 @@
 
   <div class="table-card">
     <div class="table-header">
-      <div class="search-field">
-        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در کلینیک‌ها" [disabled]="isLoading">
-        <span class="search-icon">🔍</span>
+      <div class="search-container">
+        <div class="search-field">
+          <input type="text" [(ngModel)]="filterValue" (keyup.enter)="applyFilter()" placeholder="جستجو در کلینیک‌ها" [disabled]="isLoading">
+        </div>
+        <button class="btn-search" (click)="applyFilter()" [disabled]="isLoading" title="جستجو">
+          <span class="search-icon">🔍</span>
+        </button>
       </div>
     </div>
 
@@ -45,6 +49,9 @@
             </td>
             <td>
               <div class="action-buttons">
+                <button class="btn-icon btn-users" (click)="openClinicUsersDialog(clinic)" title="کاربران کلینیک" [disabled]="isLoading">
+                  👥
+                </button>
                 <button class="btn-icon btn-edit" (click)="editClinic(clinic)" title="ویرایش" [disabled]="isLoading">
                   ✏️
                 </button>
@@ -60,5 +67,9 @@
         </tbody>
       </table>
     </div>
+
+    <app-pagination [currentPage]="currentPage" [totalPages]="totalPages" [totalCount]="totalCount"
+      [pageSize]="pageSize" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
   </div>
 </div>

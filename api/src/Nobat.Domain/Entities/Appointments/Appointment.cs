@@ -1,6 +1,5 @@
 using Nobat.Domain.Common;
 using Nobat.Domain.Entities.Doctors;
-using Nobat.Domain.Entities.Users;
 
 namespace Nobat.Domain.Entities.Appointments;
 
@@ -10,16 +9,6 @@ namespace Nobat.Domain.Entities.Appointments;
 /// </summary>
 public class Appointment : BaseEntity
 {
-    /// <summary>
-    /// شناسه پزشک
-    /// </summary>
-    public int DoctorId { get; set; }
-
-    /// <summary>
-    /// پزشک
-    /// </summary>
-    public virtual Doctor Doctor { get; set; } = null!;
-
     /// <summary>
     /// شناسه برنامه پزشک
     /// </summary>

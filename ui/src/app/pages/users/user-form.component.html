@@ -1,0 +1,159 @@
+<div class="page-container">
+  <div class="form-card">
+    <div class="form-header">
+      <h2>{{ isEditMode ? 'ویرایش کاربر' : 'افزودن کاربر جدید' }}</h2>
+    </div>
+
+    <form [formGroup]="userForm" (ngSubmit)="onSave()" *ngIf="!isLoading">
+      <div class="form-row">
+        <div class="form-field">
+          <label>کد ملی <span class="required">*</span></label>
+          <input type="text" formControlName="nationalCode" [readonly]="isEditMode"
+            [class.invalid]="userForm.get('nationalCode')?.invalid && userForm.get('nationalCode')?.touched">
+          <span class="error" *ngIf="userForm.get('nationalCode')?.hasError('required') && userForm.get('nationalCode')?.touched">
+            لطفا کد ملی را وارد نمایید
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>ایمیل <span class="required">*</span></label>
+          <input type="email" formControlName="email"
+            [class.invalid]="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+          <span class="error" *ngIf="userForm.get('email')?.hasError('required') && userForm.get('email')?.touched">
+            لطفا ایمیل را وارد نمایید
+          </span>
+          <span class="error" *ngIf="userForm.get('email')?.hasError('email') && userForm.get('email')?.touched">
+            ایمیل معتبر نیست
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>نام <span class="required">*</span></label>
+          <input type="text" formControlName="firstName"
+            [class.invalid]="userForm.get('firstName')?.invalid && userForm.get('firstName')?.touched">
+          <span class="error" *ngIf="userForm.get('firstName')?.hasError('required') && userForm.get('firstName')?.touched">
+            لطفا نام را وارد نمایید
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>نام خانوادگی <span class="required">*</span></label>
+          <input type="text" formControlName="lastName"
+            [class.invalid]="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched">
+          <span class="error" *ngIf="userForm.get('lastName')?.hasError('required') && userForm.get('lastName')?.touched">
+            لطفا نام خانوادگی را وارد نمایید
+          </span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>شماره تلفن</label>
+          <input type="text" formControlName="phoneNumber" placeholder="09123456789">
+        </div>
+
+        <div class="form-field">
+          <label>جنسیت</label>
+          <select formControlName="gender">
+            <option [value]="null">انتخاب کنید</option>
+            <option *ngFor="let option of genderOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>تاریخ تولد</label>
+          <input type="date" formControlName="birthDate">
+        </div>
+
+        <div class="form-field">
+          <label>شهر</label>
+          <div class="city-search-container">
+            <input type="text" [(ngModel)]="citySearchText" [ngModelOptions]="{standalone: true}"
+              (input)="onCitySearch()" (focus)="onCityInputFocus()" (blur)="onCityInputBlur()"
+              placeholder="جستجو و انتخاب شهر..." class="city-search-input">
+            <span class="search-icon">🔍</span>
+            <div class="city-dropdown" *ngIf="showCityDropdown && filteredCities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item" *ngFor="let city of filteredCities" (click)="selectCity(city)">
+                <span class="city-name">{{ city.name }}</span>
+                <span class="province-name" *ngIf="city.provinceName">{{ city.provinceName }}</span>
+              </div>
+            </div>
+            <div class="city-dropdown empty"
+              *ngIf="showCityDropdown && filteredCities.length === 0 && cities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">شهری یافت نشد</div>
+            </div>
+            <div class="city-dropdown empty" *ngIf="showCityDropdown && cities.length === 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">در حال بارگذاری شهرها...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field" *ngIf="!isEditMode">
+          <label>رمز عبور <span class="required">*</span></label>
+          <input type="password" formControlName="password"
+            [class.invalid]="userForm.get('password')?.invalid && userForm.get('password')?.touched">
+          <span class="error" *ngIf="userForm.get('password')?.hasError('required') && userForm.get('password')?.touched">
+            لطفا رمز عبور را وارد نمایید
+          </span>
+          <span class="error" *ngIf="userForm.get('password')?.hasError('minlength') && userForm.get('password')?.touched">
+            رمز عبور باید حداقل ۶ کاراکتر باشد
+          </span>
+        </div>
+
+        <div class="form-field" [class.full-width]="isEditMode">
+          <label>وضعیت</label>
+          <div class="checkbox-container">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="isActive">
+              <span>فعال</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>نقش‌ها <span class="required">*</span></label>
+          <div class="roles-container" *ngIf="availableRoles.length > 0">
+            <label class="role-checkbox-label" *ngFor="let role of availableRoles">
+              <input
+                type="checkbox"
+                [value]="role.id"
+                [checked]="isRoleSelected(role.id!)"
+                (change)="toggleRole(role.id!, $event)">
+              <span>{{ role.name }}</span>
+            </label>
+          </div>
+          <div class="loading-roles" *ngIf="isLoadingRoles">در حال بارگذاری نقش‌ها...</div>
+          <span class="error" *ngIf="selectedRoleIds.length === 0 && userForm.get('roleIds')?.touched">
+            لطفا حداقل یک نقش را انتخاب کنید
+          </span>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()" [disabled]="isSaving">
+          انصراف
+        </button>
+        <button type="submit" class="btn btn-primary" [disabled]="userForm.invalid || isSaving">
+          <span *ngIf="isSaving">در حال ذخیره...</span>
+          <span *ngIf="!isSaving">{{ isEditMode ? 'ذخیره تغییرات' : 'افزودن' }}</span>
+        </button>
+      </div>
+    </form>
+
+    <div class="loading-container" *ngIf="isLoading">
+      <div class="loading-spinner"></div>
+      <p>در حال بارگذاری...</p>
+    </div>
+  </div>
+</div>
