@@ -1,0 +1,96 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>گزارش لاگ کوئری‌ها</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="toggleHeavyOnly()" [disabled]="isLoading">
+        {{ showHeavyOnly ? 'نمایش همه' : 'فقط کوئری‌های سنگین' }}
+      </button>
+      <button class="btn btn-danger" (click)="deleteOldLogs()" [disabled]="isLoading">
+        <span class="icon">🗑️</span>
+        حذف لاگ‌های قدیمی
+      </button>
+    </div>
+  </div>
+
+  <div class="statistics-section" *ngIf="statistics">
+    <div class="stat-card">
+      <div class="stat-label">تعداد کل کوئری‌های سنگین</div>
+      <div class="stat-value">{{ statistics.totalHeavyQueries }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">متوسط زمان اجرا</div>
+      <div class="stat-value">{{ formatExecutionTimeMs(statistics.averageExecutionTimeMs) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">بیشترین زمان اجرا</div>
+      <div class="stat-value" [ngClass]="getExecutionTimeClass(statistics.maxExecutionTimeMs)">
+        {{ formatExecutionTimeMs(statistics.maxExecutionTimeMs) }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">تعداد خطاها</div>
+      <div class="stat-value" [class.error-count]="statistics.errorCount > 0">
+        {{ statistics.errorCount }}
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در لاگ کوئری‌ها"
+          [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری لاگ کوئری‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>زمان اجرا</th>
+            <th>مدت زمان</th>
+            <th>نوع دستور</th>
+            <th>Controller/Action</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of filteredQueryLogs">
+            <td>{{ log.id }}</td>
+            <td>{{ formatExecutionTime(log.executionTime) }}</td>
+            <td>
+              <span [ngClass]="getExecutionTimeClass(log.executionTimeMs)">
+                {{ formatExecutionTimeMs(log.executionTimeMs) }}
+              </span>
+            </td>
+            <td>{{ log.commandType || '-' }}</td>
+            <td>{{ log.controllerAction || '-' }}</td>
+            <td>
+              <span class="status-badge" [class.heavy]="log.isHeavy" [class.normal]="!log.isHeavy">
+                {{ log.isHeavy ? 'سنگین' : 'عادی' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-view" (click)="viewDetails(log)" title="مشاهده جزئیات" [disabled]="isLoading">
+                  👁️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredQueryLogs.length === 0 && !isLoading">
+            <td colspan="7" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [currentPage]="currentPage" [totalPages]="totalPages" [totalCount]="totalCount"
+      [pageSize]="pageSize" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

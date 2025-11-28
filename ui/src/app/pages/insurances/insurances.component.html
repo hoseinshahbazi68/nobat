@@ -1,0 +1,58 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت بیمه‌ها</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن بیمه جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در بیمه‌ها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری بیمه‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام بیمه</th>
+            <th>کد</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let insurance of filteredInsurances">
+            <td>{{ insurance.id }}</td>
+            <td>{{ insurance.name }}</td>
+            <td>{{ insurance.code }}</td>
+            <td>
+              <span class="status-badge" [class.active]="insurance.isActive" [class.inactive]="!insurance.isActive">
+                {{ insurance.isActive ? 'فعال' : 'غیرفعال' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editInsurance(insurance)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteInsurance(insurance)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredInsurances.length === 0 && !isLoading">
+            <td colspan="5" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

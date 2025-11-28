@@ -1,0 +1,54 @@
+<header class="header-toolbar">
+  <div class="header-left">
+    <button *ngIf="isMobile" class="menu-button" (click)="toggleSidenav.emit()" aria-label="منو">
+      <span class="icon">☰</span>
+    </button>
+    <div class="breadcrumb">
+      <span class="breadcrumb-text">{{ getCurrentPageTitle() }}</span>
+    </div>
+    <div class="header-username">
+      <span class="username-text">{{ username }}</span>
+    </div>
+  </div>
+  <span class="spacer"></span>
+  <div class="header-right">
+    <button class="notification-button" title="چت‌های پاسخ داده نشده" (click)="navigateToChatSupport()">
+      <span class="icon">💬</span>
+      <span class="notification-badge" *ngIf="unansweredChatCount > 0">{{ unansweredChatCount > 99 ? '99+' : unansweredChatCount }}</span>
+    </button>
+    <div class="user-menu-container">
+      <button class="user-menu-button" (click)="toggleUserMenu()">
+        <div class="user-avatar" [class.has-image]="true">
+          <img [src]="getProfilePictureUrl()" alt="Profile Picture" class="avatar-image" (error)="onImageError($event)">
+        </div>
+        <span class="dropdown-icon">▼</span>
+      </button>
+      <div class="user-menu" *ngIf="userMenuOpen" (click)="$event.stopPropagation()">
+        <div class="menu-header">
+          <div class="menu-avatar" [class.has-image]="true">
+            <img [src]="getProfilePictureUrl()" alt="Profile Picture" class="menu-avatar-image" (error)="onImageError($event)">
+          </div>
+          <div class="menu-user-info">
+            <span class="menu-username">{{ username }}</span>
+            <span class="menu-user-role">مدیر سیستم</span>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <button class="menu-item" (click)="openChangePasswordDialog()">
+          <span class="icon">🔒</span>
+          <span>تغییر رمز عبور</span>
+        </button>
+        <button class="menu-item" (click)="goToProfile(); closeUserMenu()">
+          <span class="icon">👨‍💼</span>
+          <span>پروفایل من</span>
+        </button>
+        <div class="menu-divider"></div>
+        <button class="menu-item logout-item" (click)="logout(); closeUserMenu()">
+          <span class="icon">🚪</span>
+          <span>خروج</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="menu-overlay" *ngIf="userMenuOpen" (click)="closeUserMenu()"></div>
+</header>

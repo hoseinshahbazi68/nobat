@@ -1,0 +1,63 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت روزهای تعطیل</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن تعطیل جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در تعطیلات" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری تعطیلات..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>تاریخ</th>
+            <th>نام تعطیل</th>
+            <th>توضیحات</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let holiday of filteredHolidays">
+            <td>{{ holiday.id }}</td>
+            <td>{{ persianDateService.toPersian(holiday.date) }}</td>
+            <td>{{ holiday.name }}</td>
+            <td>{{ holiday.description }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editHoliday(holiday)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteHoliday(holiday)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredHolidays.length === 0 && !isLoading">
+            <td colspan="5" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalCount]="totalCount"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

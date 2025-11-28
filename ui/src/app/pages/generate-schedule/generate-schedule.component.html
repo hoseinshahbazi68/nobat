@@ -1,0 +1,77 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>تولید زمان‌بندی پزشک</h1>
+  </div>
+
+  <div class="form-card">
+    <div class="card-header">
+      <h2>تنظیمات تولید زمان‌بندی</h2>
+    </div>
+    <div class="card-content">
+      <form [formGroup]="generateForm" (ngSubmit)="generateSchedule()">
+        <div class="form-row">
+          <div class="form-field full-width">
+            <label>پزشک</label>
+            <select formControlName="doctorId" required>
+              <option value="">انتخاب پزشک</option>
+              <option *ngFor="let doctor of doctors" [value]="doctor.id">{{ doctor.name }}</option>
+            </select>
+            <span class="error" *ngIf="generateForm.get('doctorId')?.hasError('required') && generateForm.get('doctorId')?.touched">لطفا پزشک را انتخاب کنید</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <app-persian-datepicker
+            formControlName="startDate"
+            label="تاریخ شروع (شمسی)"
+            placeholder="تاریخ شروع را انتخاب کنید"
+            [required]="true">
+          </app-persian-datepicker>
+
+          <app-persian-datepicker
+            formControlName="endDate"
+            label="تاریخ پایان (شمسی)"
+            placeholder="تاریخ پایان را انتخاب کنید"
+            [required]="true">
+          </app-persian-datepicker>
+        </div>
+
+        <div class="form-row">
+          <div class="shifts-selection">
+            <label>شیفت‌های مورد نظر:</label>
+            <div class="shifts-container">
+              <label class="checkbox-item" *ngFor="let shift of shifts">
+                <input
+                  type="checkbox"
+                  [checked]="isShiftSelected(shift.id)"
+                  (change)="toggleShift(shift.id)">
+                <span>{{ shift.name }}</span>
+              </label>
+            </div>
+            <span class="error" *ngIf="generateForm.get('shifts')?.hasError('required') && generateForm.get('shifts')?.touched">
+              لطفا حداقل یک شیفت را انتخاب کنید
+            </span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <label class="checkbox-item">
+            <input type="checkbox" formControlName="excludeHolidays">
+            <span>حذف روزهای تعطیل</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="btn btn-primary"
+            type="submit"
+            [disabled]="generateForm.invalid || isGenerating">
+            <span *ngIf="!isGenerating">✨</span>
+            <span *ngIf="isGenerating" class="spinner"></span>
+            {{ isGenerating ? 'در حال تولید...' : 'تولید زمان‌بندی' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

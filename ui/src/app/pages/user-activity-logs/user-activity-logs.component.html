@@ -1,0 +1,70 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>لاگ فعالیت‌های کاربران</h1>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در لاگ فعالیت‌ها"
+          [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری لاگ فعالیت‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>کاربر</th>
+            <th>فعالیت</th>
+            <th>کنترلر</th>
+            <th>متد HTTP</th>
+            <th>مسیر</th>
+            <th>IP</th>
+            <th>وضعیت</th>
+            <th>زمان</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of filteredActivityLogs">
+            <td>{{ log.id }}</td>
+            <td>{{ getUserDisplayName(log) }}</td>
+            <td>
+              <span class="action-badge">{{ log.action }}</span>
+            </td>
+            <td>{{ log.controller || '-' }}</td>
+            <td>
+              <span class="http-method" [class]="'method-' + (log.httpMethod?.toLowerCase() || '')">
+                {{ log.httpMethod || '-' }}
+              </span>
+            </td>
+            <td class="request-path">{{ log.requestPath || '-' }}</td>
+            <td>{{ log.ipAddress || '-' }}</td>
+            <td>
+              <span class="status-badge" [class]="getStatusBadgeClass(log.statusCode)">
+                {{ getStatusText(log.statusCode) }}
+              </span>
+            </td>
+            <td>{{ formatDate(log.activityTime) }}</td>
+            <td>
+              <button class="btn-icon btn-view" (click)="viewDetails(log)" title="مشاهده جزئیات" [disabled]="isLoading">
+                👁️
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredActivityLogs.length === 0 && !isLoading">
+            <td colspan="10" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [currentPage]="currentPage" [totalPages]="totalPages" [totalCount]="totalCount"
+      [pageSize]="pageSize" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

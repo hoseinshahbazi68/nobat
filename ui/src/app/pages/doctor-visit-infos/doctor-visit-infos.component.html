@@ -1,0 +1,69 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت اطلاعات ویزیت پزشک</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن اطلاعات ویزیت جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در اطلاعات ویزیت" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری اطلاعات ویزیت..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام پزشک</th>
+            <th>کد نظام پزشکی</th>
+            <th>درباره پزشک</th>
+            <th>آدرس مطب</th>
+            <th>تلفن مطب</th>
+            <th>ساعت حضور</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let visitInfo of filteredVisitInfos">
+            <td>{{ visitInfo.id }}</td>
+            <td>{{ getDoctorName(visitInfo) }}</td>
+            <td>{{ visitInfo.medicalCode || '-' }}</td>
+            <td>{{ visitInfo.about || '-' }}</td>
+            <td>{{ visitInfo.clinicAddress || '-' }}</td>
+            <td>{{ visitInfo.clinicPhone || '-' }}</td>
+            <td>{{ visitInfo.officeHours || '-' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editVisitInfo(visitInfo)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteVisitInfo(visitInfo)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredVisitInfos.length === 0 && !isLoading">
+            <td colspan="8" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalCount]="totalCount"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

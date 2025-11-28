@@ -1,0 +1,52 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت استان‌ها</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن استان جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در استان‌ها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری استان‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام استان</th>
+            <th>کد استان</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let province of filteredProvinces">
+            <td>{{ province.id }}</td>
+            <td>{{ province.name }}</td>
+            <td>{{ province.code || '-' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editProvince(province)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteProvince(province)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredProvinces.length === 0 && !isLoading">
+            <td colspan="4" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

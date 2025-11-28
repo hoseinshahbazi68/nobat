@@ -1,0 +1,64 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت تخصص‌ها</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن تخصص جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در تخصص‌ها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری تخصص‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام تخصص</th>
+            <th>توضیحات</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let specialty of filteredSpecialties">
+            <td>{{ specialty.id }}</td>
+            <td>{{ specialty.name }}</td>
+            <td>{{ specialty.description }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editSpecialty(specialty)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-link" (click)="openMedicalConditionsDialog(specialty)" title="مدیریت علائم پزشکی" [disabled]="isLoading">
+                  🏥
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteSpecialty(specialty)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredSpecialties.length === 0 && !isLoading">
+            <td colspan="4" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalCount]="totalCount"
+      [pageSize]="pageSize"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

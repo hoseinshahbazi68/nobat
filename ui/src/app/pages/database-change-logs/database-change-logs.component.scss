@@ -1,0 +1,87 @@
+@import '../_shared-styles.scss';
+
+.filters-section {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    select {
+      padding: 0.5rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      min-width: 150px;
+      cursor: pointer;
+      transition: all var(--transition-base);
+
+      &:hover:not(:disabled) {
+        border-color: var(--primary);
+      }
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.change-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+
+  &.change-type-added {
+    background: rgba(16, 185, 129, 0.15);
+    color: rgb(16, 185, 129);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.change-type-modified {
+    background: rgba(59, 130, 246, 0.15);
+    color: rgb(59, 130, 246);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  &.change-type-deleted {
+    background: rgba(239, 68, 68, 0.15);
+    color: rgb(239, 68, 68);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+}
+
+.btn-view {
+  background: rgba(59, 130, 246, 0.1);
+  color: rgb(59, 130, 246);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+
+  &:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgb(59, 130, 246);
+  }
+}

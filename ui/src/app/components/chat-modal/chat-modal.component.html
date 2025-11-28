@@ -1,0 +1,71 @@
+<div class="chat-modal-container">
+  <div class="chat-header">
+    <div class="header-info">
+      <div class="support-avatar">
+        <span class="avatar-icon">💬</span>
+      </div>
+      <div class="header-text">
+        <h3 class="chat-title">پشتیبانی آنلاین</h3>
+        <span class="status-text">
+          <span class="status-dot" [class.online]="isSupportOnline" [class.offline]="!isSupportOnline"></span>
+          {{ isSupportOnline ? 'آنلاین' : 'آفلاین' }}
+        </span>
+      </div>
+    </div>
+    <button class="btn-close" (click)="closeChat()" aria-label="بستن چت">
+      <span>✕</span>
+    </button>
+  </div>
+
+  <div class="chat-messages" #chatMessages>
+    <!-- ورود شماره موبایل -->
+    <div *ngIf="showPhoneInput" class="phone-input-container">
+      <div class="phone-input-wrapper">
+        <label for="phoneNumber">شماره موبایل:</label>
+        <input type="tel" id="phoneNumber" [(ngModel)]="phoneNumber" placeholder="09123456789" class="phone-input"
+          (keydown.enter)="initializeChat()" maxlength="11">
+        <button class="btn-start-chat" (click)="initializeChat()" [disabled]="!phoneNumber">
+          شروع چت
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="isLoading" class="loading-messages">
+      <p>در حال بارگذاری پیام‌ها...</p>
+    </div>
+    <div *ngFor="let message of messages" class="message" [class.user-message]="message.sender === 'user'"
+      [class.support-message]="message.sender === 'support'">
+      <div class="message-avatar" *ngIf="message.sender === 'support' && message.supportUserName">
+        <span class="avatar-icon">👤</span>
+      </div>
+      <div class="message-content">
+        <div class="message-sender" *ngIf="message.sender === 'support' && message.supportUserName">
+          {{ message.supportUserName }}
+        </div>
+        <div class="message-text">{{ message.text || message.message }}</div>
+        <div class="message-time">{{ formatTime(message.timestamp || message.createdAt) }}</div>
+      </div>
+    </div>
+
+    <div *ngIf="isTyping" class="message support-message typing-indicator">
+      <div class="message-content">
+        <div class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input-container" *ngIf="!showPhoneInput">
+    <div class="input-wrapper">
+      <textarea [(ngModel)]="newMessage" (keydown)="onKeyPress($event)" placeholder="پیام خود را بنویسید..."
+        class="chat-input" rows="1" #messageInput></textarea>
+      <button class="btn-send" (click)="sendMessage()" [disabled]="!newMessage.trim() || isTyping"
+        aria-label="ارسال پیام">
+        <span class="send-icon">📤</span>
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,82 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>گزارش تغییرات دیتابیس</h1>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="filters-section">
+        <div class="filter-group">
+          <label>فیلتر بر اساس جدول:</label>
+          <select [(ngModel)]="selectedTableName" (change)="onTableNameFilterChange()" [disabled]="isLoading">
+            <option value="">همه جداول</option>
+            <option *ngFor="let tableName of tableNames" [value]="tableName">{{ tableName }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>فیلتر بر اساس نوع تغییر:</label>
+          <select [(ngModel)]="selectedChangeType" (change)="onChangeTypeFilterChange()" [disabled]="isLoading">
+            <option value="">همه انواع</option>
+            <option *ngFor="let changeType of changeTypes" [value]="changeType">{{ getChangeTypeLabel(changeType) }}</option>
+          </select>
+        </div>
+
+        <button class="btn btn-secondary" (click)="clearFilters()" [disabled]="isLoading">
+          پاک کردن فیلترها
+        </button>
+      </div>
+
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در لاگ تغییرات"
+          [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری لاگ تغییرات..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام جدول</th>
+            <th>شناسه رکورد</th>
+            <th>نوع تغییر</th>
+            <th>زمان تغییر</th>
+            <th>آدرس IP</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of filteredChangeLogs">
+            <td>{{ log.id }}</td>
+            <td>{{ log.tableName }}</td>
+            <td>{{ log.recordId }}</td>
+            <td>
+              <span class="change-type-badge" [ngClass]="getChangeTypeClass(log.changeType)">
+                {{ getChangeTypeLabel(log.changeType) }}
+              </span>
+            </td>
+            <td>{{ formatDate(log.changeTime) }}</td>
+            <td>{{ log.ipAddress || '-' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-view" (click)="viewDetails(log)" title="مشاهده جزئیات" [disabled]="isLoading">
+                  👁️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredChangeLogs.length === 0 && !isLoading">
+            <td colspan="7" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <app-pagination [currentPage]="currentPage" [totalPages]="totalPages" [totalCount]="totalCount"
+      [pageSize]="pageSize" (pageChange)="onPageChange($event)" (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination>
+  </div>
+</div>

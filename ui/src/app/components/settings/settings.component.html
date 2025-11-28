@@ -1,0 +1,88 @@
+<div class="settings-container">
+  <!-- Floating Button -->
+  <button class="settings-toggle-btn" (click)="toggleSettings()" [class.active]="isOpen" title="تنظیمات">
+    <span class="icon">⚙️</span>
+  </button>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel" [class.open]="isOpen">
+    <div class="settings-header">
+      <h3>تنظیمات نمایش</h3>
+      <button class="close-btn" (click)="closeSettings()" title="بستن">
+        <span>✕</span>
+      </button>
+    </div>
+
+    <div class="settings-content">
+      <!-- Font Family -->
+      <div class="setting-group">
+        <label class="setting-label">فونت</label>
+        <select 
+          class="setting-select" 
+          [value]="settings.fontFamily"
+          (change)="updateFontFamily($event)">
+          <option *ngFor="let font of availableFonts" [value]="font">
+            {{ font }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Font Size -->
+      <div class="setting-group">
+        <label class="setting-label">اندازه فونت</label>
+        <div class="font-size-options">
+          <button 
+            *ngFor="let size of ['small', 'medium', 'large']"
+            class="size-btn"
+            [class.active]="settings.fontSize === size"
+            (click)="updateFontSize(size)">
+            {{ size === 'small' ? 'کوچک' : size === 'medium' ? 'متوسط' : 'بزرگ' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Primary Color -->
+      <div class="setting-group">
+        <label class="setting-label">رنگ اصلی</label>
+        <div class="color-options">
+          <button
+            *ngFor="let color of availableColors"
+            class="color-btn"
+            [class.active]="settings.primaryColor === color.value"
+            [style.background-color]="color.value"
+            [title]="color.name"
+            (click)="updatePrimaryColor(color.value)">
+            <span *ngIf="settings.primaryColor === color.value" class="check">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Secondary Color -->
+      <div class="setting-group">
+        <label class="setting-label">رنگ ثانویه</label>
+        <div class="color-options">
+          <button
+            *ngFor="let color of availableColors"
+            class="color-btn"
+            [class.active]="settings.secondaryColor === color.value"
+            [style.background-color]="color.value"
+            [title]="color.name"
+            (click)="updateSecondaryColor(color.value)">
+            <span *ngIf="settings.secondaryColor === color.value" class="check">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Reset Button -->
+      <div class="setting-group">
+        <button class="reset-btn" (click)="resetSettings()">
+          <span class="icon">🔄</span>
+          بازگردانی به پیش‌فرض
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="settings-overlay" [class.active]="isOpen" (click)="closeSettings()"></div>
+</div>

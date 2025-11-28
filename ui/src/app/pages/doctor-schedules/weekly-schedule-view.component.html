@@ -1,0 +1,46 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>برنامه هفتگی</h1>
+  </div>
+
+  <div class="weekly-schedule-container" *ngIf="selectedDoctorId">
+    <div class="week-days-grid">
+      <div *ngFor="let day of weekDays" class="day-card" [class.has-schedule]="day.schedule"
+        (click)="openDaySchedule(day)">
+        <div class="day-card-header">
+          <h3 class="day-card-title">{{ day.dayName }}</h3>
+        </div>
+        <div class="day-card-content">
+          <div class="schedule-info" *ngIf="day.schedule; else noSchedule">
+            <div class="schedule-details">
+              <div class="schedule-item" *ngIf="getShiftName(day.schedule.shiftId)">
+                <span class="schedule-label">شیفت:</span>
+                <span class="schedule-value">{{ getShiftName(day.schedule.shiftId) }}</span>
+              </div>
+              <div class="schedule-item" *ngIf="day.schedule.startTime && day.schedule.endTime">
+                <span class="schedule-label">زمان:</span>
+                <span class="schedule-value">{{ day.schedule.startTime }} - {{ day.schedule.endTime }}</span>
+              </div>
+              <div class="schedule-item" *ngIf="day.schedule.count">
+                <span class="schedule-label">تعداد:</span>
+                <span class="schedule-value">{{ day.schedule.count }}</span>
+              </div>
+            </div>
+            <span class="edit-icon">✏️</span>
+          </div>
+          <ng-template #noSchedule>
+            <div class="no-schedule">
+              <span class="no-schedule-text">بدون برنامه</span>
+              <span class="edit-icon">✏️</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!selectedDoctorId">
+    <span class="empty-icon">📅</span>
+    <p>شناسه پزشک در URL یافت نشد. لطفاً از صفحه برنامه حضور پزشکان وارد شوید.</p>
+  </div>
+</div>

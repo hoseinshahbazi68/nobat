@@ -1,0 +1,65 @@
+<div class="persian-datepicker-container">
+  <mat-form-field appearance="outline" class="datepicker-field">
+    <mat-label *ngIf="label">{{ label }}</mat-label>
+    <input
+      matInput
+      [value]="persianDateString"
+      [placeholder]="placeholder"
+      [required]="required"
+      [disabled]="disabled"
+      (input)="onInputChange($event)"
+      readonly
+      dir="rtl">
+    <button
+      mat-icon-button
+      matSuffix
+      type="button"
+      (click)="toggleCalendar()"
+      [disabled]="disabled"
+      tabindex="-1">
+      <mat-icon>calendar_today</mat-icon>
+    </button>
+  </mat-form-field>
+
+  <div class="calendar-popup" *ngIf="isCalendarOpen" (click)="$event.stopPropagation()">
+    <div class="calendar-header">
+      <button mat-icon-button (click)="previousYear($event)" type="button" aria-label="سال قبل">
+        <mat-icon>keyboard_double_arrow_right</mat-icon>
+      </button>
+      <button mat-icon-button (click)="previousMonth($event)" type="button" aria-label="ماه قبل">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <div class="month-year-selector">
+        <span class="month-name">{{ persianMonths[selectedMonth - 1] }}</span>
+        <span class="year-number">{{ selectedYear }}</span>
+      </div>
+      <button mat-icon-button (click)="nextMonth($event)" type="button" aria-label="ماه بعد">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <button mat-icon-button (click)="nextYear($event)" type="button" aria-label="سال بعد">
+        <mat-icon>keyboard_double_arrow_left</mat-icon>
+      </button>
+    </div>
+
+    <div class="calendar-weekdays">
+      <div class="weekday" *ngFor="let weekday of persianWeekDays">{{ weekday }}</div>
+    </div>
+
+    <div class="calendar-days">
+      <div
+        *ngFor="let calendarDay of calendarDays; let i = index"
+        class="calendar-day"
+        [class.other-month]="!calendarDay.isCurrentMonth"
+        [class.selected]="calendarDay.isSelected"
+        [class.today]="calendarDay.isToday"
+        (click)="selectDate(calendarDay.day, calendarDay.isCurrentMonth)">
+        {{ calendarDay.day }}
+      </div>
+    </div>
+
+    <div class="calendar-footer">
+      <button mat-button (click)="goToToday()" type="button">امروز</button>
+      <button mat-button (click)="closeCalendar()" type="button">بستن</button>
+    </div>
+  </div>
+</div>

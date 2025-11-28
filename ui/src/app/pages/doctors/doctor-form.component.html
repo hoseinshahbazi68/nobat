@@ -1,0 +1,254 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>{{ isEditMode ? 'ویرایش پزشک' : 'افزودن پزشک جدید' }}</h1>
+    <button class="btn btn-secondary" (click)="cancel()">
+      <span class="icon">←</span>
+      بازگشت به لیست
+    </button>
+  </div>
+
+  <div class="form-card">
+    <form [formGroup]="doctorForm" (ngSubmit)="saveDoctor()">
+      <div class="form-row">
+        <div class="form-field">
+          <label>کد نظام پزشکی <span class="required">*</span></label>
+          <div class="medical-code-search-container">
+            <div class="search-input-group">
+              <input type="text" formControlName="medicalCode" required [readonly]="!!foundDoctor && !isEditMode"
+                class="medical-code-input" placeholder="کد نظام پزشکی را وارد کنید" (blur)="onMedicalCodeChange()"
+                (keyup.enter)="onMedicalCodeChange()" [disabled]="isEditMode && !!foundDoctor">
+              <button type="button" class="btn btn-secondary btn-clear" (click)="clearDoctorSearch()"
+                *ngIf="foundDoctor && !isEditMode">
+                ✕
+              </button>
+            </div>
+          </div>
+          <span class="error"
+            *ngIf="doctorForm.get('medicalCode')?.hasError('required') && doctorForm.get('medicalCode')?.touched">لطفا
+            کد
+            نظام پزشکی را وارد نمایید</span>
+        </div>
+        <div class="form-field">
+          <label>کد ملی <span class="required">*</span></label>
+          <div class="user-search-container">
+            <div class="search-input-group">
+              <input type="text" [(ngModel)]="userSearchValue" [ngModelOptions]="{standalone: true}"
+                placeholder="کد ملی را وارد کنید" (keyup.enter)="searchUserByNationalCode(userSearchValue)"
+                class="user-search-input">
+              <button type="button" class="btn btn-primary btn-search"
+                (click)="searchUserByNationalCode(userSearchValue)" [disabled]="!userSearchValue || isSearchingUser">
+                <span *ngIf="!isSearchingUser">🔍 جستجو</span>
+                <span *ngIf="isSearchingUser">⏳ در حال جستجو...</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-clear" (click)="clearUser()"
+                *ngIf="foundUser || userSearchValue">
+                ✕
+              </button>
+            </div>
+          </div>
+          <span class="error"
+            *ngIf="doctorForm.get('userId')?.hasError('required') && doctorForm.get('userId')?.touched">لطفا کد ملی
+            کاربر را وارد نمایید</span>
+          <small class="form-hint">کد ملی را وارد کرده و دکمه جستجو را بزنید</small>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>پیشوند</label>
+          <select formControlName="prefix" class="form-select">
+            <option *ngFor="let option of prefixOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>درجه علمی</label>
+          <select formControlName="scientificDegree" class="form-select">
+            <option *ngFor="let option of scientificDegreeOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>نام پزشک</label>
+          <input type="text" formControlName="firstName" placeholder="نام" [disabled]="foundUser !== null">
+        </div>
+        <div class="form-field">
+          <label>نام خانوادگی پزشک</label>
+          <input type="text" formControlName="lastName" placeholder="نام خانوادگی" [disabled]="foundUser !== null">
+        </div>
+        <div class="form-field">
+          <label>موبایل پزشک</label>
+          <input type="text" formControlName="phoneNumber" placeholder="شماره موبایل" [disabled]="foundUser !== null">
+        </div>
+
+        <div class="form-field">
+          <label>جنسیت</label>
+          <select formControlName="gender" class="form-select" [disabled]="foundUser !== null">
+            <option [value]="null">انتخاب کنید</option>
+            <option *ngFor="let option of genderOptions" [value]="option.value">{{ option.label }}</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="form-row">
+        <div class="form-field">
+          <label>تاریخ تولد</label>
+          <input type="date" formControlName="birthDate" class="form-input" [disabled]="foundUser !== null">
+        </div>
+
+        <div class="form-field">
+          <label>شهر</label>
+          <div class="city-search-container">
+            <input type="text" [(ngModel)]="citySearchText" [ngModelOptions]="{standalone: true}"
+              (input)="onCitySearch()" (focus)="onCityInputFocus()" (blur)="onCityInputBlur()"
+              placeholder="جستجو و انتخاب شهر..." class="city-search-input">
+            <span class="search-icon">🔍</span>
+            <div class="city-dropdown" *ngIf="showCityDropdown && filteredCities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item" *ngFor="let city of filteredCities" (click)="selectCity(city)">
+                <span class="city-name">{{ city.name }}</span>
+                <span class="province-name" *ngIf="city.provinceName">{{ city.provinceName }}</span>
+              </div>
+            </div>
+            <div class="city-dropdown empty"
+              *ngIf="showCityDropdown && filteredCities.length === 0 && cities.length > 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">شهری یافت نشد</div>
+            </div>
+            <div class="city-dropdown empty" *ngIf="showCityDropdown && cities.length === 0"
+              (mousedown)="$event.preventDefault()">
+              <div class="city-item">در حال بارگذاری شهرها...</div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+
+
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>عکس پروفایل</label>
+          <div class="file-upload-container">
+            <div class="file-preview" *ngIf="profilePictureUrl">
+              <div class="preview-box-100">
+                <img [src]="profilePictureUrl" alt="Preview" class="preview-image-100" (error)="onImageError($event)">
+              </div>
+              <button type="button" class="btn-remove-image" (click)="removeFile()" *ngIf="selectedFile">
+                ✕
+              </button>
+            </div>
+            <div class="file-input-wrapper">
+              <input type="file" id="profilePicture" accept="image/*" (change)="onFileSelected($event)"
+                class="file-input">
+              <label for="profilePicture" class="file-input-label">
+                <span class="file-input-icon">📷</span>
+                <span class="file-input-text">{{ selectedFile ? selectedFile.name : 'انتخاب عکس پروفایل' }}</span>
+              </label>
+            </div>
+            <small class="form-hint">فقط فایل‌های تصویری (JPG, PNG, GIF) تا 5 مگابایت</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row full-width">
+        <div class="form-field">
+          <label>تخصص‌ها <span class="required">*</span></label>
+          <div class="specialties-container">
+            <div class="specialty-item" *ngFor="let selectedSpec of selectedSpecialties; let i = index">
+              <div class="specialty-controls">
+                <button type="button" class="btn-icon btn-move" (click)="moveSpecialtyUp(i)" [disabled]="i === 0"
+                  title="جابجایی به بالا">
+                  ↑
+                </button>
+                <button type="button" class="btn-icon btn-move" (click)="moveSpecialtyDown(i)"
+                  [disabled]="i === selectedSpecialties.length - 1" title="جابجایی به پایین">
+                  ↓
+                </button>
+              </div>
+              <select [(ngModel)]="selectedSpec.specialtyId" [ngModelOptions]="{standalone: true}"
+                class="specialty-select" (change)="onSpecialtyChange(selectedSpec.specialtyId, i)">
+                <option [value]="0">انتخاب تخصص</option>
+                <option *ngFor="let spec of availableSpecialties" [value]="spec.id"
+                  [selected]="selectedSpec.specialtyId === spec.id">
+                  {{ spec.name }}
+                </option>
+              </select>
+              <button type="button" class="btn-icon btn-remove" (click)="removeSpecialty(i)" title="حذف">
+                ×
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary btn-add-specialty" (click)="addSpecialty()">
+              <span class="icon">+</span>
+              افزودن تخصص
+            </button>
+          </div>
+          <span class="error" *ngIf="hasInvalidSpecialties()">لطفا حداقل یک تخصص را انتخاب کنید</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <div class="medical-conditions-header">
+            <label>علائم و مشکلات پزشکی</label>
+            <div class="selected-count" *ngIf="selectedMedicalConditions.length > 0">
+              <span class="count-badge">{{ selectedMedicalConditions.length }}</span>
+              <span class="count-text">علائم انتخاب شده</span>
+            </div>
+          </div>
+
+          <div class="medical-conditions-search">
+            <input type="text" [(ngModel)]="medicalConditionSearch" [ngModelOptions]="{standalone: true}"
+              (input)="filterMedicalConditions()" placeholder="جستجو در علائم پزشکی..." class="search-input">
+            <span class="search-icon">🔍</span>
+          </div>
+
+          <div class="medical-conditions-container">
+            <div class="medical-conditions-grid" *ngIf="filteredMedicalConditions.length > 0; else noConditions">
+              <div class="condition-card" *ngFor="let condition of filteredMedicalConditions"
+                [class.selected]="isMedicalConditionSelected(condition.id!)"
+                [class.from-specialty]="isConditionFromSpecialty(condition.id!)">
+                <label class="condition-checkbox-label">
+                  <input type="checkbox" [checked]="isMedicalConditionSelected(condition.id!)"
+                    (change)="toggleMedicalCondition(condition.id!)">
+                  <span class="custom-checkbox"></span>
+                  <div class="condition-content">
+                    <span class="condition-name">{{ condition.name }}</span>
+                    <span class="condition-badge" *ngIf="isConditionFromSpecialty(condition.id!)">
+                      <span class="badge-icon">🏥</span>
+                      مرتبط با تخصص
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <ng-template #noConditions>
+              <div class="empty-conditions">
+                <span class="empty-icon">🔍</span>
+                <p>هیچ علائمی یافت نشد</p>
+                <small *ngIf="medicalConditionSearch">متن جستجوی خود را تغییر دهید</small>
+              </div>
+            </ng-template>
+          </div>
+
+          <small class="form-hint">
+            <span class="hint-icon">💡</span>
+            علائم مرتبط با تخصص‌های انتخاب شده به صورت خودکار انتخاب می‌شوند. می‌توانید علائم را اضافه یا حذف کنید.
+          </small>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" [disabled]="!isFormValidForSubmit()">
+          {{ isEditMode ? 'ذخیره تغییرات' : 'افزودن' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cancel()">
+          انصراف
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

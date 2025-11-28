@@ -1,0 +1,14 @@
+<div class="layout-container">
+  <div class="sidebar-overlay" *ngIf="isMobile && sidebarOpen" (click)="toggleSidenav()"></div>
+  <aside class="sidebar" [class.open]="sidebarOpen" [class.mobile]="isMobile">
+    <app-sidebar (closeSidenav)="onSidenavClose()"></app-sidebar>
+  </aside>
+  <div class="main-content">
+    <app-header [isMobile]="isMobile" (toggleSidenav)="toggleSidenav()"></app-header>
+    <div class="content-wrapper">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+  <app-settings></app-settings>
+</div>
+

@@ -1,0 +1,29 @@
+<div class="dashboard-container">
+  <h1>داشبورد</h1>
+
+  <div class="action-section">
+    <button
+      class="generate-btn"
+      [disabled]="isGenerating"
+      (click)="generateAppointments()">
+      <span class="btn-icon">🔄</span>
+      <span class="btn-text">{{ isGenerating ? 'در حال تولید...' : 'تولید نوبت‌ها' }}</span>
+    </button>
+  </div>
+
+  <div class="stats-grid">
+    <div *ngFor="let stat of stats; let i = index" class="stat-card" [style.--card-color]="stat.color" [style.--card-color-2]="getGradientColor(stat.color)" [class.clickable]="stat.route" (click)="stat.route && navigateTo(stat.route)">
+      <div class="stat-content-wrapper">
+        <div class="stat-content">
+          <div class="stat-icon" [style.background]="getGradient(stat.color)">
+            <span class="icon">{{ getIcon(stat.icon) }}</span>
+          </div>
+          <div class="stat-info">
+            <h3>{{ stat.title }}</h3>
+            <p class="stat-value">{{ stat.value }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,100 @@
+@import '../_shared-styles.scss';
+
+.query-log-detail {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.dialog-header {
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+}
+
+.dialog-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  word-break: break-word;
+  font-size: 0.95rem;
+}
+
+.query-text {
+  background: var(--bg-secondary);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0;
+  line-height: 1.6;
+  border: 1px solid var(--border-color);
+}
+
+.error-text {
+  color: var(--error);
+}
+
+.heavy-badge {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.normal-badge {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.execution-time-critical {
+  color: var(--error);
+  font-weight: 600;
+}
+
+.execution-time-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.execution-time-normal {
+  color: var(--success);
+}
+
+.dialog-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}

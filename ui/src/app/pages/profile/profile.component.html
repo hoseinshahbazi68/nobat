@@ -1,0 +1,143 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>پروفایل کاربر</h1>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>در حال بارگذاری...</p>
+  </div>
+
+  <div *ngIf="!isLoading" class="profile-content">
+    <!-- User Info Card -->
+    <div class="info-card">
+      <div class="avatar-section">
+        <div class="avatar-wrapper">
+          <div class="avatar" [class.has-image]="true">
+            <img [src]="getProfilePictureUrl()" alt="Profile Picture" class="avatar-image" (error)="onImageError($event)">
+            <div class="avatar-overlay">
+              <input type="file" id="profilePicture" accept="image/*" (change)="onFileSelected($event)"
+                class="file-input-hidden">
+              <label for="profilePicture" class="avatar-upload-label" title="انتخاب عکس پروفایل">
+                <span class="upload-icon">📷</span>
+              </label>
+              <button *ngIf="profilePictureUrl" type="button" class="btn-remove-avatar" (click)="removeProfilePicture()" title="حذف عکس">
+                ✕
+              </button>
+            </div>
+          </div>
+          <label for="profilePicture" class="change-photo-link">
+            <span>تغییر عکس</span>
+          </label>
+          <small class="avatar-hint" *ngIf="selectedFile">عکس جدید انتخاب شده</small>
+          <!-- Preview box for cropped image -->
+          <div class="cropped-preview" *ngIf="selectedFile">
+            <div class="preview-box">
+              <img [src]="profilePictureUrl" alt="Preview" class="preview-image">
+            </div>
+            <small class="preview-label">پیش‌نمایش عکس کراپ شده</small>
+          </div>
+        </div>
+        <div class="user-info">
+          <h2>{{ getFullName() || user?.nationalCode }}</h2>
+          <p class="username">کد ملی: {{ user?.nationalCode }}</p>
+          <p class="roles">{{ getRoles() }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Form Card -->
+    <div class="form-card">
+      <h3 class="card-title">اطلاعات شخصی</h3>
+      <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nationalCode">کد ملی</label>
+            <input type="text" id="nationalCode" formControlName="nationalCode" readonly class="form-input readonly">
+            <small class="form-hint">کد ملی قابل تغییر نیست</small>
+          </div>
+
+          <div class="form-group">
+            <label for="email">ایمیل <span class="required">*</span></label>
+            <input type="email" id="email" formControlName="email" class="form-input"
+              [class.invalid]="profileForm.get('email')?.invalid && profileForm.get('email')?.touched">
+            <div *ngIf="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" class="error-message">
+              <span *ngIf="profileForm.get('email')?.errors?.['required']">لطفا ایمیل را وارد نمایید</span>
+              <span *ngIf="profileForm.get('email')?.errors?.['email']">فرمت ایمیل صحیح نیست</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="firstName">نام <span class="required">*</span></label>
+            <input type="text" id="firstName" formControlName="firstName" class="form-input"
+              [class.invalid]="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched">
+            <div *ngIf="profileForm.get('firstName')?.invalid && profileForm.get('firstName')?.touched"
+              class="error-message">
+              لطفا نام را وارد نمایید
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">نام خانوادگی <span class="required">*</span></label>
+            <input type="text" id="lastName" formControlName="lastName" class="form-input"
+              [class.invalid]="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched">
+            <div *ngIf="profileForm.get('lastName')?.invalid && profileForm.get('lastName')?.touched"
+              class="error-message">
+              لطفا نام خانوادگی را وارد نمایید
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="phoneNumber">شماره تلفن</label>
+            <input type="tel" id="phoneNumber" formControlName="phoneNumber" class="form-input"
+              placeholder="09123456789">
+          </div>
+
+          <div class="form-group">
+            <label for="cityId">شهر</label>
+            <div class="city-search-container">
+              <input type="text" id="cityId" [(ngModel)]="citySearchText" [ngModelOptions]="{standalone: true}"
+                (input)="onCitySearch()" (focus)="onCityInputFocus()" (blur)="onCityInputBlur()"
+                placeholder="جستجو و انتخاب شهر..." class="form-input city-search-input">
+              <span class="search-icon">🔍</span>
+              <div class="city-dropdown" *ngIf="showCityDropdown && filteredCities.length > 0">
+                <div class="city-item" *ngFor="let city of filteredCities" (click)="selectCity(city)">
+                  <span class="city-name">{{ city.name }}</span>
+                  <span class="province-name" *ngIf="city.provinceName">{{ city.provinceName }}</span>
+                </div>
+              </div>
+              <div class="city-dropdown empty" *ngIf="showCityDropdown && filteredCities.length === 0">
+                <div class="city-item">شهری یافت نشد</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gender">جنسیت <span class="required">*</span></label>
+            <select id="gender" formControlName="gender" class="form-input"
+              [class.invalid]="profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched">
+              <option [value]="null">انتخاب کنید</option>
+              <option *ngFor="let option of genderOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+            <div *ngIf="profileForm.get('gender')?.invalid && profileForm.get('gender')?.touched" class="error-message">
+              لطفا جنسیت را انتخاب کنید
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="birthDate">تاریخ تولد</label>
+            <input type="date" id="birthDate" formControlName="birthDate" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="isSaving || profileForm.invalid">
+            <span *ngIf="!isSaving">💾 ذخیره تغییرات</span>
+            <span *ngIf="isSaving">⏳ در حال ذخیره...</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>

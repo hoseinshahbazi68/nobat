@@ -1,0 +1,18 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>برنامه حضور پزشکان</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="goToWeeklySchedule()">
+        <span class="icon">📅</span>
+        برنامه هفتگی
+      </button>
+    </div>
+  </div>
+
+  <div class="calendar-section">
+    <app-persian-calendar
+      [doctorId]="selectedDoctorId"
+      (dateSelected)="onDateSelected($event)">
+    </app-persian-calendar>
+  </div>
+</div>

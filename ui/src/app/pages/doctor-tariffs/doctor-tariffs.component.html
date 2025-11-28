@@ -1,0 +1,62 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>تعرفه پزشک: {{ getDoctorDisplayName() }}</h1>
+    <div class="header-actions">
+      <button class="btn btn-secondary" (click)="goBack()" [disabled]="isLoading">
+        <span class="icon">←</span>
+        بازگشت
+      </button>
+      <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading || !selectedClinic">
+        <span class="icon">+</span>
+        افزودن تعرفه جدید
+      </button>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در تعرفه‌ها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری تعرفه‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>خدمت</th>
+            <th>بیمه</th>
+            <th>قیمت (تومان)</th>
+            <th>مدت زمان ویزیت (دقیقه)</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tariff of filteredTariffs">
+            <td>{{ tariff.id }}</td>
+            <td>{{ tariff.serviceName }}</td>
+            <td>{{ tariff.insuranceName }}</td>
+            <td>{{ tariff.price | number }}</td>
+            <td>{{ tariff.visitDuration || '-' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editTariff(tariff)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteTariff(tariff)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredTariffs.length === 0 && !isLoading">
+            <td colspan="6" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

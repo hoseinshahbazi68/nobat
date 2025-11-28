@@ -1,0 +1,60 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت شهرها</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن شهر جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در شهرها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+      <div class="filter-field">
+        <select [(ngModel)]="selectedProvinceId" (change)="filterByProvince()" [disabled]="isLoading">
+          <option [value]="null">همه استان‌ها</option>
+          <option *ngFor="let province of provinces" [value]="province.id">{{ province.name }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری شهرها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام شهر</th>
+            <th>استان</th>
+            <th>کد شهر</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let city of filteredCities">
+            <td>{{ city.id }}</td>
+            <td>{{ city.name }}</td>
+            <td>{{ city.provinceName || '-' }}</td>
+            <td>{{ city.code || '-' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editCity(city)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteCity(city)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredCities.length === 0 && !isLoading">
+            <td colspan="5" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

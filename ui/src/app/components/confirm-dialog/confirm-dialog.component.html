@@ -1,0 +1,23 @@
+<div class="confirm-dialog-container">
+  <div class="dialog-header">
+    <div class="icon-wrapper" [class.danger]="data.type === 'danger'" [class.warning]="data.type === 'warning'" [class.info]="data.type === 'info'">
+      <span class="icon" *ngIf="data.type === 'danger'">⚠️</span>
+      <span class="icon" *ngIf="data.type === 'warning'">⚠️</span>
+      <span class="icon" *ngIf="data.type === 'info'">ℹ️</span>
+    </div>
+    <h2 class="dialog-title">{{ data.title }}</h2>
+  </div>
+
+  <div class="dialog-content">
+    <p class="dialog-message">{{ data.message }}</p>
+  </div>
+
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="onCancel()">
+      {{ data.cancelText }}
+    </button>
+    <button class="btn btn-primary" [class.btn-danger]="data.type === 'danger'" [class.btn-warning]="data.type === 'warning'" (click)="onConfirm()">
+      {{ data.confirmText }}
+    </button>
+  </div>
+</div>

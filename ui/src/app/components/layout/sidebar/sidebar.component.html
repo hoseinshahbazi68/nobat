@@ -1,0 +1,66 @@
+<div class="sidebar-content">
+  <div class="sidebar-header">
+    <div class="header-top">
+      <div class="logo-container">
+        <span class="logo-icon">🏥</span>
+      </div>
+      <h2>پنل نوبت دهی</h2>
+    </div>
+    <!-- Clinic Dropdown -->
+    <div class="clinic-dropdown-container" *ngIf="clinics.length > 0">
+      <button class="clinic-dropdown-button" (click)="toggleClinicDropdown()">
+        <span class="clinic-icon">🏥</span>
+        <span class="clinic-name">{{ selectedClinic?.name || 'انتخاب کلینیک' }}</span>
+        <span class="dropdown-icon">▼</span>
+      </button>
+      <div class="clinic-dropdown-menu" *ngIf="clinicDropdownOpen" (click)="$event.stopPropagation()">
+        <div class="clinic-menu-item" *ngFor="let clinic of clinics"
+          (click)="selectClinic(clinic); $event.stopPropagation()" [class.selected]="selectedClinic?.id === clinic.id">
+          <span class="clinic-item-icon">🏥</span>
+          <span class="clinic-item-name">{{ clinic.name }}</span>
+          <span class="check-icon" *ngIf="selectedClinic?.id === clinic.id">✓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" placeholder="جستجو در منو..." [(ngModel)]="searchQuery">
+      <button class="clear-search" *ngIf="searchQuery" (click)="clearSearch()" type="button">
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <!-- Dashboard as standalone item -->
+    <a class="nav-item standalone" *ngIf="shouldShowDashboard" [routerLink]="dashboardItem.route"
+      [class.active]="isActive(dashboardItem.route)" (click)="navigate(dashboardItem.route)">
+      <span class="nav-icon">{{ getIcon(dashboardItem.icon) }}</span>
+      <span class="nav-title">{{ dashboardItem.title }}</span>
+    </a>
+
+    <!-- Menu groups -->
+    <div class="menu-group" *ngFor="let group of filteredMenuGroups">
+      <div class="group-header" (click)="toggleGroup(group)">
+        <div class="group-title-container">
+          <span class="group-icon">{{ getIcon(group.icon) }}</span>
+          <span class="group-title">{{ group.title }}</span>
+        </div>
+        <span class="expand-icon" [class.expanded]="group.expanded">▼</span>
+      </div>
+      <div class="group-items" [class.expanded]="group.expanded">
+        <a class="nav-item" *ngFor="let item of group.items" [routerLink]="item.route"
+          [class.active]="isActive(item.route)" (click)="navigate(item.route)">
+          <span class="nav-icon">{{ getIcon(item.icon) }}</span>
+          <span class="nav-title">{{ item.title }}</span>
+          <span class="nav-badge" *ngIf="item.badgeCount && item.badgeCount > 0">
+            {{ item.badgeCount > 99 ? '99+' : item.badgeCount }}
+          </span>
+        </a>
+      </div>
+    </div>
+  </nav>
+</div>

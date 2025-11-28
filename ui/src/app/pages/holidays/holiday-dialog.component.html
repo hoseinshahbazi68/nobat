@@ -1,0 +1,39 @@
+<div class="dialog-container">
+  <div class="dialog-header">
+    <h2>{{ data ? 'ویرایش تعطیل' : 'افزودن تعطیل جدید' }}</h2>
+  </div>
+  <div class="dialog-content">
+    <form [formGroup]="holidayForm">
+      <div class="form-row">
+        <app-persian-datepicker
+          formControlName="date"
+          label="تاریخ (شمسی)"
+          placeholder="تاریخ را انتخاب کنید"
+          [required]="true"
+          class="full-width">
+        </app-persian-datepicker>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>نام تعطیل</label>
+          <input type="text" formControlName="name" required>
+          <span class="error" *ngIf="holidayForm.get('name')?.hasError('required') && holidayForm.get('name')?.touched">لطفا نام تعطیل را وارد نمایید</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-field full-width">
+          <label>توضیحات</label>
+          <textarea formControlName="description" rows="3"></textarea>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="dialog-actions">
+    <button type="button" class="btn btn-secondary" (click)="cancel()">انصراف</button>
+    <button type="button" class="btn btn-primary" (click)="save()" [disabled]="holidayForm.invalid">
+      ذخیره
+    </button>
+  </div>
+</div>

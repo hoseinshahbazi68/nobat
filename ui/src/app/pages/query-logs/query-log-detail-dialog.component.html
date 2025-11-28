@@ -1,0 +1,62 @@
+<div class="query-log-detail">
+  <div class="dialog-header">
+    <h2>جزئیات لاگ کوئری</h2>
+  </div>
+
+  <div class="dialog-content">
+    <div class="detail-section">
+      <div class="detail-row">
+        <span class="detail-label">شناسه:</span>
+        <span class="detail-value">{{ data.id }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">زمان اجرا:</span>
+        <span class="detail-value">{{ formatDate(data.executionTime) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">مدت زمان اجرا:</span>
+        <span class="detail-value" [ngClass]="getTimeClass(data.executionTimeMs)">
+          {{ formatTime(data.executionTimeMs) }}
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="data.commandType">
+        <span class="detail-label">نوع دستور:</span>
+        <span class="detail-value">{{ data.commandType }}</span>
+      </div>
+      <div class="detail-row" *ngIf="data.controllerAction">
+        <span class="detail-label">Controller/Action:</span>
+        <span class="detail-value">{{ data.controllerAction }}</span>
+      </div>
+      <div class="detail-row" *ngIf="data.tablesUsed">
+        <span class="detail-label">جداول استفاده شده:</span>
+        <span class="detail-value">{{ data.tablesUsed }}</span>
+      </div>
+      <div class="detail-row" *ngIf="data.ipAddress">
+        <span class="detail-label">آدرس IP:</span>
+        <span class="detail-value">{{ data.ipAddress }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">وضعیت:</span>
+        <span class="detail-value" [ngClass]="data.isHeavy ? 'heavy-badge' : 'normal-badge'">
+          {{ data.isHeavy ? 'سنگین' : 'عادی' }}
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="data.errorMessage">
+        <span class="detail-label">خطا:</span>
+        <span class="detail-value error-text">{{ data.errorMessage }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">متن کوئری:</span>
+        <pre class="query-text">{{ data.queryText }}</pre>
+      </div>
+      <div class="detail-row" *ngIf="data.parameters">
+        <span class="detail-label">پارامترها:</span>
+        <pre class="query-text">{{ formatParameters(data.parameters) }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-actions">
+    <button class="btn btn-secondary" (click)="close()">بستن</button>
+  </div>
+</div>

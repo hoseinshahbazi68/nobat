@@ -1,0 +1,40 @@
+<div class="login-container">
+  <div class="login-card">
+    <div class="login-header">
+      <h1>ورود به پنل نوبت دهی</h1>
+    </div>
+    <div class="login-content">
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+        <div class="form-field">
+          <label>کد ملی</label>
+          <input type="text" formControlName="nationalCode" required>
+          <span class="error" *ngIf="loginForm.get('nationalCode')?.hasError('required') && loginForm.get('nationalCode')?.touched">
+            لطفا کد ملی را وارد نمایید
+          </span>
+        </div>
+
+        <div class="form-field">
+          <label>رمز عبور</label>
+          <input type="password" formControlName="password" required>
+          <span class="error" *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
+            لطفا رمز عبور را وارد نمایید
+          </span>
+          <span class="error" *ngIf="loginForm.get('password')?.hasError('minlength') && loginForm.get('password')?.touched">
+            رمز عبور باید حداقل ۶ کاراکتر باشد
+          </span>
+        </div>
+
+        <button type="submit" [disabled]="loginForm.invalid || isLoading" class="btn btn-primary full-width">
+          <span *ngIf="!isLoading">ورود</span>
+          <span *ngIf="isLoading">در حال ورود...</span>
+        </button>
+      </form>
+    </div>
+    <div class="login-footer">
+      <p class="register-link">
+        حساب کاربری ندارید؟
+        <a routerLink="/register">ثبت نام کنید</a>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,223 @@
+.persian-datepicker-container {
+  position: relative;
+  width: 100%;
+  direction: rtl;
+
+  .datepicker-field {
+    width: 100%;
+
+    ::ng-deep .mat-mdc-form-field {
+      width: 100%;
+      direction: rtl;
+    }
+
+    ::ng-deep .mat-mdc-text-field-wrapper {
+      direction: rtl;
+    }
+
+    ::ng-deep input {
+      direction: rtl;
+      text-align: right;
+      font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+    }
+
+    ::ng-deep .mat-mdc-form-field-icon-suffix {
+      direction: rtl;
+    }
+  }
+
+  &.full-width {
+    width: 100%;
+  }
+}
+
+.calendar-popup {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+  padding: 20px;
+  width: 320px;
+  min-width: 280px;
+  max-width: 90vw;
+  direction: rtl;
+  font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+  border: 1px solid #e0e0e0;
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+
+    .month-year-selector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 100px;
+
+      .month-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1a1a1a;
+        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+        line-height: 1.2;
+      }
+
+      .year-number {
+        font-size: 14px;
+        color: #666;
+        font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+        line-height: 1.2;
+        font-weight: 500;
+      }
+    }
+
+    button {
+      color: #666;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+        border-radius: 50%;
+      }
+    }
+  }
+
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 0 2px;
+
+    .weekday {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      padding: 10px 0;
+      font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+      line-height: 1;
+    }
+  }
+
+  .calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    padding: 0 2px;
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      user-select: none;
+      font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+      min-height: 40px;
+      position: relative;
+
+      &:hover:not(.other-month) {
+        background-color: rgba(6, 182, 212, 0.1);
+        transform: translateY(-2px);
+      }
+
+      &.other-month {
+        color: #bbb;
+        cursor: default;
+        opacity: 0.4;
+      }
+
+      &.today {
+        background-color: rgba(6, 182, 212, 0.12);
+        color: #06b6d4;
+        font-weight: 700;
+        border: 2px solid rgba(6, 182, 212, 0.4);
+      }
+
+      &.selected {
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+        border: none;
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(6, 182, 212, 0.5);
+        }
+      }
+    }
+  }
+
+  .calendar-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e0e0e0;
+    gap: 8px;
+
+    button {
+      color: #06b6d4;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+      padding: 10px 18px;
+      border-radius: 8px;
+      transition: all 0.2s;
+      min-width: 70px;
+
+      &:hover {
+        background-color: rgba(6, 182, 212, 0.1);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+}
+
+// بهبود استایل input field
+.persian-datepicker-container {
+  .datepicker-field {
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper {
+      margin-top: 4px;
+    }
+
+    ::ng-deep .mdc-text-field--outlined {
+      .mdc-notched-outline {
+        border-color: var(--border-color, #e0e0e0);
+      }
+
+      &.mdc-text-field--focused .mdc-notched-outline {
+        border-color: #06b6d4;
+        border-width: 2px;
+      }
+    }
+  }
+}

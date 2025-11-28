@@ -1,0 +1,64 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1>مدیریت کلینیک‌ها</h1>
+    <button class="btn btn-primary" (click)="openAddDialog()" [disabled]="isLoading">
+      <span class="icon">+</span>
+      افزودن کلینیک جدید
+    </button>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header">
+      <div class="search-field">
+        <input type="text" [(ngModel)]="filterValue" (keyup)="applyFilter()" placeholder="جستجو در کلینیک‌ها" [disabled]="isLoading">
+        <span class="search-icon">🔍</span>
+      </div>
+    </div>
+
+    <div class="table-container" [class.table-loading-overlay]="isLoading">
+      <app-loading *ngIf="isLoading" [overlay]="true" message="در حال بارگذاری کلینیک‌ها..."></app-loading>
+      <table class="data-table" [style.opacity]="isLoading ? '0.5' : '1'">
+        <thead>
+          <tr>
+            <th>شناسه</th>
+            <th>نام کلینیک</th>
+            <th>آدرس</th>
+            <th>تلفن</th>
+            <th>ایمیل</th>
+            <th>شهر</th>
+            <th>وضعیت</th>
+            <th>عملیات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let clinic of filteredClinics">
+            <td>{{ clinic.id }}</td>
+            <td>{{ clinic.name }}</td>
+            <td>{{ clinic.address || '-' }}</td>
+            <td>{{ clinic.phone || '-' }}</td>
+            <td>{{ clinic.email || '-' }}</td>
+            <td>{{ clinic.cityName || '-' }}</td>
+            <td>
+              <span class="status-badge" [class.active]="clinic.isActive" [class.inactive]="!clinic.isActive">
+                {{ clinic.isActive ? 'فعال' : 'غیرفعال' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="btn-icon btn-edit" (click)="editClinic(clinic)" title="ویرایش" [disabled]="isLoading">
+                  ✏️
+                </button>
+                <button class="btn-icon btn-delete" (click)="deleteClinic(clinic)" title="حذف" [disabled]="isLoading">
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredClinics.length === 0 && !isLoading">
+            <td colspan="8" class="no-data">داده‌ای یافت نشد</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+@import '../_shared-styles.scss';
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+
+  &.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--secondary);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  &.inactive {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+  }
+}
