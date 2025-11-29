@@ -34,4 +34,9 @@ export class ProvinceService extends BaseApiService {
   delete(id: number): Observable<void> {
     return this.deleteRequest<void>(`Provinces/${id}`);
   }
+
+  // متد عمومی بدون نیاز به احراز هویت (برای صفحه اصلی)
+  getAllPublic(params?: ProvinceQueryParams): Observable<PagedResult<Province>> {
+    return this.get<PagedResult<Province>>('Provinces/public', params);
+  }
 }

@@ -29,10 +29,12 @@ import { ClinicFormComponent } from './pages/clinics/clinic-form.component';
 import { DoctorTariffsComponent } from './pages/doctor-tariffs/doctor-tariffs.component';
 import { MedicalConditionsComponent } from './pages/medical-conditions/medical-conditions.component';
 import { DoctorVisitInfosComponent } from './pages/doctor-visit-infos/doctor-visit-infos.component';
+import { DoctorListComponent } from './pages/doctor-list/doctor-list.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/home', pathMatch: 'full' },
   { path: 'home', component: HomeComponent },
+  { path: 'doctor-list', component: DoctorListComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   {

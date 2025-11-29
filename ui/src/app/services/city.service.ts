@@ -40,12 +40,16 @@ export class CityService extends BaseApiService {
     return this.deleteRequest<void>(`Cities/${id}`);
   }
 
-  // متدهای عمومی بدون نیاز به احراز هویت (برای صفحه ثبت‌نام)
+  // متدهای عمومی بدون نیاز به احراز هویت (برای صفحه ثبت‌نام و صفحه اصلی)
   getAllPublic(params?: CityQueryParams): Observable<PagedResult<City>> {
     return this.get<PagedResult<City>>('Cities/public', params);
   }
 
   getByIdPublic(id: number): Observable<City> {
     return this.get<City>(`Cities/public/${id}`);
+  }
+
+  getByProvinceIdPublic(provinceId: number): Observable<City[]> {
+    return this.get<City[]>(`Cities/public/province/${provinceId}`);
   }
 }

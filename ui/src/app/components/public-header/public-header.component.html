@@ -1,0 +1,98 @@
+<header class="public-header">
+  <!-- Top Gradient Strip -->
+  <div class="top-gradient-strip"></div>
+  
+  <div class="header-content">
+    <!-- Right: Logo -->
+    <div class="header-right">
+      <div class="logo-section" (click)="goToHome()">
+        <div class="logo-icon-wrapper">
+          <svg class="stethoscope-icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <!-- Stethoscope forming a smiley face -->
+            <!-- Left ear (stethoscope bell) -->
+            <circle cx="25" cy="50" r="10" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+            <!-- Right ear (stethoscope bell) -->
+            <circle cx="75" cy="50" r="10" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+            <!-- Tube connecting to top -->
+            <path d="M 25 50 Q 25 35, 50 30 Q 75 35, 75 50" stroke="#06b6d4" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <!-- Top circle (chest piece) -->
+            <circle cx="50" cy="30" r="8" fill="#06b6d4" stroke="#0891b2" stroke-width="2"/>
+            <!-- Smile curve -->
+            <path d="M 35 65 Q 50 75, 65 65" stroke="#06b6d4" stroke-width="3" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="logo-text">Doctoreto</span>
+      </div>
+    </div>
+
+    <!-- Center: Navigation Menu -->
+    <div class="header-center">
+      <nav class="main-nav">
+        <a class="nav-link" routerLink="/appointment" routerLinkActive="active">
+          نوبت دهی مطب
+        </a>
+        <a class="nav-link" routerLink="/consultation" routerLinkActive="active">
+          مشاوره آنلاین
+          <span class="nav-dot"></span>
+        </a>
+        <div class="nav-link dropdown" (click)="toggleTreatmentCentersDropdown()" [class.active]="treatmentCentersDropdownOpen">
+          مراکز درمانی
+          <span class="nav-dot"></span>
+          <span class="dropdown-arrow">▼</span>
+        </div>
+        <a class="nav-link" routerLink="/lab" routerLinkActive="active">
+          پذیرش آنلاین آزمایشگاه
+          <span class="nav-star">★</span>
+        </a>
+        <a class="nav-link" routerLink="/magazine" routerLinkActive="active">
+          مجله سلامت
+        </a>
+      </nav>
+      <a class="doctor-register-link" routerLink="/doctor-register">
+        ثبت نام پزشکان
+      </a>
+    </div>
+
+    <!-- Left: User Panel -->
+    <div class="header-left">
+      <div class="user-panel-container" *ngIf="isAuthenticated && currentUser">
+        <button class="user-button" (click)="toggleUserPanel()" [class.active]="userPanelOpen">
+          <span class="user-icon">👤</span>
+          <span class="user-text">{{ getUserFullName() }}</span>
+          <span class="arrow-icon" [class.open]="userPanelOpen">▼</span>
+        </button>
+        <div class="user-panel" *ngIf="userPanelOpen">
+          <div class="user-panel-header">
+            <div class="user-info-main">
+              <div class="user-name">{{ getUserFullName() }}</div>
+            </div>
+            <div class="user-avatar-wrapper">
+              <div class="user-avatar">
+                <span class="user-avatar-icon">👤</span>
+              </div>
+            </div>
+          </div>
+          <div class="user-panel-menu">
+            <button class="user-menu-item change-password-item" (click)="openChangePasswordDialog()">
+              <span class="menu-item-text">تغيير رمز عبور</span>
+              <span class="menu-item-icon">🔒</span>
+            </button>
+            <button class="user-menu-item profile-item" (click)="goToProfile()">
+              <span class="menu-item-text">بروفايل من</span>
+              <span class="menu-item-icon">👤</span>
+            </button>
+            <button class="user-menu-item logout-item" (click)="logout()">
+              <span class="menu-item-text">خروج</span>
+              <span class="menu-item-icon">🚪</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <a routerLink="/login" class="login-link" *ngIf="!isAuthenticated">
+        <span class="login-icon">🔐</span>
+        ورود
+      </a>
+    </div>
+  </div>
+</header>
+

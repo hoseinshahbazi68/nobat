@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, HostListener, ElementRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Doctor } from '../../models/doctor.model';
 import { Specialty } from '../../models/specialty.model';
@@ -7,8 +7,6 @@ import { Service } from '../../models/service.model';
 import { Insurance } from '../../models/insurance.model';
 import { MedicalCondition } from '../../models/medical-condition.model';
 import { User } from '../../models/user.model';
-import { City } from '../../models/city.model';
-import { Province } from '../../models/province.model';
 import { DialogService } from '../../services/dialog.service';
 import { AuthService } from '../../services/auth.service';
 import { DoctorService } from '../../services/doctor.service';
@@ -17,16 +15,15 @@ import { ClinicService } from '../../services/clinic.service';
 import { ServiceService } from '../../services/service.service';
 import { InsuranceService } from '../../services/insurance.service';
 import { MedicalConditionService } from '../../services/medical-condition.service';
-import { CityService } from '../../services/city.service';
-import { ProvinceService } from '../../services/province.service';
 import { ChatModalComponent } from '../../components/chat-modal/chat-modal.component';
+import { ChangePasswordDialogComponent } from '../../components/change-password-dialog/change-password-dialog.component';
 
 @Component({
-  selector: 'app-home',
-  templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss']
+  selector: 'app-doctor-list',
+  templateUrl: './doctor-list.component.html',
+  styleUrls: ['./doctor-list.component.scss']
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class DoctorListComponent implements OnInit {
   doctors: Doctor[] = [];
   filteredDoctors: Doctor[] = [];
   specialties: Specialty[] = [];
@@ -41,16 +38,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   availableCities: string[] = [];
   availableServices: Service[] = [];
   availableInsurances: Insurance[] = [];
-  provinces: Province[] = [];
-  cities: City[] = [];
-  filteredCities: City[] = [];
-  allCitiesByProvince: Map<number, City[]> = new Map();
-  isLoadingCities = false;
 
   selectedSpecialty: number | null = null;
   selectedGender: 'male' | 'female' | null = null;
-  selectedProvinceId: number | null = null;
-  selectedCityId: number | null = null;
   selectedCity: string | null = null;
   selectedClinicId: number | null = null;
   selectedServiceId: number | null = null;
@@ -60,12 +50,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   // Dropdown states
   specialtySearchQuery: string = '';
   citySearchQuery: string = '';
-  provinceSearchQuery: string = '';
   clinicSearchQuery: string = '';
   serviceSearchQuery: string = '';
   insuranceSearchQuery: string = '';
   specialtyDropdownOpen: boolean = false;
-  provinceDropdownOpen: boolean = false;
   cityDropdownOpen: boolean = false;
   clinicDropdownOpen: boolean = false;
   serviceDropdownOpen: boolean = false;
@@ -76,6 +64,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   isLoading = false;
   currentUser: User | null = null;
   isAuthenticated = false;
+  userPanelOpen = false;
 
   constructor(
     private router: Router,
@@ -86,16 +75,12 @@ export class HomeComponent implements OnInit, OnDestroy {
     private clinicService: ClinicService,
     private serviceService: ServiceService,
     private insuranceService: InsuranceService,
-    private medicalConditionService: MedicalConditionService,
-    private cityService: CityService,
-    private provinceService: ProvinceService
+    private medicalConditionService: MedicalConditionService
   ) { }
 
   ngOnInit() {
     this.checkMobile();
     this.checkAuthentication();
-    this.loadProvinces();
-    this.loadAllCities();
     this.loadSpecialties();
     this.loadClinics();
     this.loadServices();
@@ -111,6 +96,50 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  getUserRoleDisplay(): string {
+    if (!this.currentUser || !this.currentUser.roles || this.currentUser.roles.length === 0) {
+      return 'کاربر';
+    }
+    // تبدیل نام نقش‌ها به فارسی
+    const roleMap: { [key: string]: string } = {
+      'Admin': 'مدیر سیستم',
+      'User': 'کاربر',
+      'Doctor': 'پزشک',
+      'Receptionist': 'منشی'
+    };
+    return this.currentUser.roles.map(role => roleMap[role] || role).join('، ');
+  }
+
+  getUserFullName(): string {
+    if (!this.currentUser) {
+      return 'کاربر';
+    }
+    const firstName = this.currentUser.firstName || '';
+    const lastName = this.currentUser.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || this.currentUser.nationalCode || 'کاربر';
+  }
+
+  openChangePasswordDialog() {
+    this.closeUserPanel();
+    this.dialogService.open(ChangePasswordDialogComponent, {
+      width: '500px',
+      maxWidth: '90vw'
+    }).subscribe();
+  }
+
+  goToProfile() {
+    this.closeUserPanel();
+    this.router.navigate(['/panel/profile']);
+  }
+
+  logout() {
+    this.closeUserPanel();
+    this.authService.logout();
+    this.isAuthenticated = false;
+    this.currentUser = null;
+    this.router.navigate(['/home']);
+  }
 
   @HostListener('window:resize', ['$event'])
   onResize() {
@@ -123,27 +152,23 @@ export class HomeComponent implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    
-    // اگر کلیک داخل city-selector-wrapper یا location-modal است، modal را نبند
-    if (target.closest('.city-selector-wrapper') || target.closest('.location-modal')) {
-      return;
-    }
-    
-    // بستن modal شهر و استان اگر کلیک بیرون باشد
-    if (this.provinceDropdownOpen || this.cityDropdownOpen) {
-      this.closeLocationModal();
-    }
-    
-    // بستن dropdown‌های دیگر اگر کلیک بیرون از dropdown-container باشد
+    // بستن dropdown‌ها اگر کلیک بیرون از dropdown-container باشد
     if (!target.closest('.dropdown-container')) {
-      this.specialtyDropdownOpen = false;
-      this.clinicDropdownOpen = false;
-      this.serviceDropdownOpen = false;
-      this.insuranceDropdownOpen = false;
-      this.medicalConditionDropdownOpen = false;
+      this.closeAllDropdowns();
+    }
+    // بستن پنل کاربر اگر کلیک بیرون از user-panel باشد
+    if (!target.closest('.user-panel-container')) {
+      this.userPanelOpen = false;
     }
   }
 
+  toggleUserPanel() {
+    this.userPanelOpen = !this.userPanelOpen;
+  }
+
+  closeUserPanel() {
+    this.userPanelOpen = false;
+  }
 
   checkMobile() {
     this.isMobile = window.innerWidth < 768;
@@ -230,114 +255,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.medicalConditions = [];
       }
     });
-  }
-
-  loadProvinces() {
-    // استفاده از API عمومی برای دریافت استان‌ها
-    this.provinceService.getAllPublic({
-      page: 1,
-      pageSize: 100
-    }).subscribe({
-      next: (result) => {
-        this.provinces = result.items || [];
-      },
-      error: (error) => {
-        console.error('خطا در بارگذاری استان‌ها:', error);
-        this.provinces = [];
-      }
-    });
-  }
-
-  loadCitiesByProvince(provinceId: number) {
-    this.cityService.getByProvinceId(provinceId).subscribe({
-      next: (cities) => {
-        this.cities = cities || [];
-        this.filteredCities = [...this.cities];
-      },
-      error: (error) => {
-        console.error('خطا در بارگذاری شهرها:', error);
-        this.cities = [];
-        this.filteredCities = [];
-      }
-    });
-  }
-
-  loadAllCities() {
-    this.isLoadingCities = true;
-    // بارگذاری همه استان‌ها و سپس شهرهای هر استان با استفاده از API عمومی
-    this.provinceService.getAllPublic({
-      page: 1,
-      pageSize: 100
-    }).subscribe({
-      next: (provinceResult) => {
-        const provinces = provinceResult.items || [];
-        let loadedCount = 0;
-        
-        if (provinces.length === 0) {
-          this.isLoadingCities = false;
-          return;
-        }
-
-        provinces.forEach((province) => {
-          if (province.id) {
-            // استفاده از API عمومی برای دریافت شهرهای استان
-            this.cityService.getByProvinceIdPublic(province.id).subscribe({
-              next: (cities) => {
-                if (province.id) {
-                  this.allCitiesByProvince.set(province.id, cities || []);
-                }
-                loadedCount++;
-                if (loadedCount === provinces.length) {
-                  this.isLoadingCities = false;
-                }
-              },
-              error: (error) => {
-                console.error(`خطا در بارگذاری شهرهای استان ${province.name}:`, error);
-                if (province.id) {
-                  this.allCitiesByProvince.set(province.id, []);
-                }
-                loadedCount++;
-                if (loadedCount === provinces.length) {
-                  this.isLoadingCities = false;
-                }
-              }
-            });
-          }
-        });
-      },
-      error: (error) => {
-        console.error('خطا در بارگذاری استان‌ها:', error);
-        this.isLoadingCities = false;
-      }
-    });
-  }
-
-  getGroupedCities(): { province: Province; cities: City[] }[] {
-    const query = this.citySearchQuery.trim().toLowerCase();
-    const grouped: { province: Province; cities: City[] }[] = [];
-
-    this.provinces.forEach(province => {
-      if (province.id) {
-        const cities = this.allCitiesByProvince.get(province.id) || [];
-        let filteredCities = cities;
-
-        if (query) {
-          filteredCities = cities.filter(city =>
-            city.name?.toLowerCase().includes(query) ||
-            province.name?.toLowerCase().includes(query)
-          );
-        }
-
-        if (filteredCities.length > 0) {
-          grouped.push({
-            province,
-            cities: filteredCities.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-          });
-        }
-      }
-    });
-
-    return grouped.sort((a, b) => (a.province.name || '').localeCompare(b.province.name || ''));
   }
 
   extractCities() {
@@ -429,24 +346,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     );
   }
 
-  getFilteredCities(): City[] {
+  getFilteredCities(): string[] {
     if (!this.citySearchQuery.trim()) {
-      return this.filteredCities;
+      return this.availableCities;
     }
     const query = this.citySearchQuery.toLowerCase();
-    return this.filteredCities.filter(c =>
-      c.name?.toLowerCase().includes(query) ||
-      c.provinceName?.toLowerCase().includes(query)
-    );
-  }
-
-  getFilteredProvinces(): Province[] {
-    if (!this.provinceSearchQuery.trim()) {
-      return this.provinces;
-    }
-    const query = this.provinceSearchQuery.toLowerCase();
-    return this.provinces.filter(p =>
-      p.name?.toLowerCase().includes(query)
+    return this.availableCities.filter(c =>
+      c.toLowerCase().includes(query)
     );
   }
 
@@ -489,24 +395,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   getSelectedCityName(): string {
-    if (this.selectedCityId) {
-      // پیدا کردن شهر از همه شهرهای بارگذاری شده
-      for (const cities of this.allCitiesByProvince.values()) {
-        const city = cities.find(c => c.id === this.selectedCityId);
-        if (city) {
-          return city.name || 'انتخاب شهر';
-        }
-      }
-    }
-    return 'انتخاب شهر';
-  }
-
-  getSelectedProvinceName(): string {
-    if (this.selectedProvinceId) {
-      const province = this.provinces.find(p => p.id === this.selectedProvinceId);
-      return province?.name || 'انتخاب استان';
-    }
-    return 'انتخاب استان';
+    return this.selectedCity || 'همه شهرها';
   }
 
   getSelectedClinicName(): string {
@@ -539,25 +428,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.applyFilters();
   }
 
-  selectCity(cityId: number | null) {
-    this.selectedCityId = cityId;
-    if (cityId) {
-      // پیدا کردن شهر از همه شهرهای بارگذاری شده
-      for (const cities of this.allCitiesByProvince.values()) {
-        const city = cities.find(c => c.id === cityId);
-        if (city) {
-          this.selectedCity = city.name || null;
-          this.selectedProvinceId = city.provinceId;
-          break;
-        }
-      }
-    } else {
-      this.selectedCity = null;
-      this.selectedProvinceId = null;
-    }
-    this.provinceDropdownOpen = false;
+  selectCity(city: string | null) {
+    this.selectedCity = this.selectedCity === city ? null : city;
+    this.cityDropdownOpen = false;
     this.citySearchQuery = '';
-    document.body.style.overflow = '';
     this.applyFilters();
   }
 
@@ -614,40 +488,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleProvinceDropdown() {
-    this.provinceDropdownOpen = !this.provinceDropdownOpen;
-    if (this.provinceDropdownOpen) {
-      this.closeOtherDropdowns('province');
-      // جلوگیری از اسکرول صفحه وقتی modal باز است
-      document.body.style.overflow = 'hidden';
-      // اگر شهرها هنوز بارگذاری نشده‌اند، بارگذاری کن
-      if (this.allCitiesByProvince.size === 0 && !this.isLoadingCities) {
-        this.loadAllCities();
-      }
-    } else {
-      document.body.style.overflow = '';
-    }
-  }
-
-  closeProvinceModal() {
-    this.provinceDropdownOpen = false;
-    this.citySearchQuery = '';
-    document.body.style.overflow = '';
-  }
-
-  closeLocationModal() {
-    this.provinceDropdownOpen = false;
-    this.cityDropdownOpen = false;
-    this.citySearchQuery = '';
-    document.body.style.overflow = '';
-  }
-
   toggleCityDropdown() {
-    if (!this.selectedProvinceId) {
-      // اگر استان انتخاب نشده، ابتدا باید استان انتخاب شود
-      this.provinceDropdownOpen = true;
-      return;
-    }
     this.cityDropdownOpen = !this.cityDropdownOpen;
     if (this.cityDropdownOpen) {
       this.closeOtherDropdowns('city');
@@ -677,7 +518,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   closeOtherDropdowns(except: string) {
     if (except !== 'specialty') this.specialtyDropdownOpen = false;
-    if (except !== 'province') this.provinceDropdownOpen = false;
     if (except !== 'city') this.cityDropdownOpen = false;
     if (except !== 'clinic') this.clinicDropdownOpen = false;
     if (except !== 'service') this.serviceDropdownOpen = false;
@@ -687,7 +527,6 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   closeAllDropdowns() {
     this.specialtyDropdownOpen = false;
-    this.provinceDropdownOpen = false;
     this.cityDropdownOpen = false;
     this.clinicDropdownOpen = false;
     this.serviceDropdownOpen = false;
@@ -800,26 +639,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     // فیلتر بر اساس شهر
-    if (this.selectedCityId !== null) {
-      let selectedCity: City | null = null;
-      // پیدا کردن شهر از همه شهرهای بارگذاری شده
-      for (const cities of this.allCitiesByProvince.values()) {
-        const city = cities.find(c => c.id === this.selectedCityId);
-        if (city) {
-          selectedCity = city;
-          break;
-        }
-      }
-      
-      if (selectedCity) {
-        filtered = filtered.filter(doctor => {
-          if (!doctor.clinics || doctor.clinics.length === 0) return false;
-          return doctor.clinics.some(clinic => {
-            if (!clinic.address) return false;
-            return clinic.address.includes(selectedCity!.name);
-          });
+    if (this.selectedCity !== null) {
+      filtered = filtered.filter(doctor => {
+        if (!doctor.clinics || doctor.clinics.length === 0) return false;
+        return doctor.clinics.some(clinic => {
+          if (!clinic.address) return false;
+          return clinic.address.includes(this.selectedCity!);
         });
-      }
+      });
     }
 
     // فیلتر بر اساس کلینیک
@@ -875,8 +702,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   hasActiveFilters(): boolean {
     return this.selectedSpecialty !== null ||
       this.selectedGender !== null ||
-      this.selectedProvinceId !== null ||
-      this.selectedCityId !== null ||
       this.selectedCity !== null ||
       this.selectedClinicId !== null ||
       this.selectedServiceId !== null ||
@@ -887,18 +712,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   clearAllFilters() {
     this.selectedSpecialty = null;
     this.selectedGender = null;
-    this.selectedProvinceId = null;
-    this.selectedCityId = null;
     this.selectedCity = null;
     this.selectedClinicId = null;
     this.selectedServiceId = null;
     this.selectedInsuranceId = null;
     this.selectedMedicalCondition = '';
-    this.cities = [];
-    this.filteredCities = [];
     this.searchQuery = '';
     this.specialtySearchQuery = '';
-    this.provinceSearchQuery = '';
     this.citySearchQuery = '';
     this.clinicSearchQuery = '';
     this.serviceSearchQuery = '';
@@ -1032,26 +852,5 @@ export class HomeComponent implements OnInit, OnDestroy {
       maxWidth: '90vw'
     }).subscribe();
   }
-
-  goToDoctorList() {
-    // اگر جستجو انجام شده، پارامترها را به صفحه لیست پزشکان بفرست
-    const queryParams: any = {};
-    if (this.searchQuery.trim()) {
-      queryParams.search = this.searchQuery.trim();
-    }
-    if (this.selectedCityId) {
-      queryParams.cityId = this.selectedCityId;
-    } else if (this.selectedCity) {
-      queryParams.city = this.selectedCity;
-    }
-    if (this.selectedProvinceId) {
-      queryParams.provinceId = this.selectedProvinceId;
-    }
-    this.router.navigate(['/doctor-list'], { queryParams });
-  }
-
-  ngOnDestroy() {
-    // Reset body overflow when component is destroyed
-    document.body.style.overflow = '';
-  }
 }
+

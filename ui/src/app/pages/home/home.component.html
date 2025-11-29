@@ -5,419 +5,148 @@
     <span class="chat-badge" *ngIf="false">1</span>
   </button>
 
-  <!-- Header Section -->
-  <header class="home-header">
-    <div class="header-background">
-      <div class="bg-shapes">
-        <div class="shape shape-1"></div>
-        <div class="shape shape-2"></div>
-        <div class="shape shape-3"></div>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-background">
+      <div class="medical-icons">
+        <div class="medical-icon">🩺</div>
+        <div class="medical-icon">💉</div>
+        <div class="medical-icon">🧪</div>
+        <div class="medical-icon">💊</div>
       </div>
     </div>
-    <nav class="home-nav">
-      <div class="nav-brand">
-        <span class="brand-icon">🏥</span>
-        <span class="brand-text">نوبت‌دهی آنلاین</span>
-      </div>
-      <div class="nav-links">
-        <a routerLink="/home" class="nav-link active">
-          <span class="nav-icon">🔍</span>
-          جستجوی پزشکان
-        </a>
-        <a routerLink="/login" class="nav-link">
-          <span class="nav-icon">🔐</span>
-          ورود
-        </a>
-        <a routerLink="/panel" class="nav-link">
-          <span class="nav-icon">⚙️</span>
-          پنل مدیریت
-        </a>
-      </div>
-    </nav>
-    <div class="header-content">
-      <div class="hero-content">
-        <h1 class="home-title">
-          <span class="title-line">پیدا کردن پزشک</span>
-          <span class="title-line highlight">آسان‌تر از همیشه</span>
-        </h1>
-        <p class="home-subtitle">با جستجوی پیشرفته و فیلترهای هوشمند، بهترین پزشک را در کوتاه‌ترین زمان پیدا کنید</p>
-        <div class="hero-stats">
-          <div class="stat-item">
-            <span class="stat-number">+{{ filteredDoctors.length }}</span>
-            <span class="stat-label">پزشک فعال</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">۲۴/۷</span>
-            <span class="stat-label">پشتیبانی آنلاین</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-number">۱۰۰٪</span>
-            <span class="stat-label">رزرو آنلاین</span>
-          </div>
+    
+    <div class="hero-content-wrapper">
+      <h1 class="hero-title">نوبت دهی آنلاین</h1>
+      <p class="hero-subtitle">نوبت دهی اینترنتی و مشاوره آنلاین پزشکان ایران</p>
+      
+      <!-- Search Bar -->
+      <div class="search-bar-container">
+        <div class="search-input-wrapper">
+          <input 
+            type="text" 
+            class="search-input" 
+            placeholder="نام پزشک، تخصص، بیماری، مرکز درمانی، خدمت و..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="goToDoctorList()"
+          />
+          <span class="search-icon">🔍</span>
         </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Main Content -->
-  <main class="home-main">
-    <!-- Sidebar Overlay for Mobile -->
-    <div class="sidebar-overlay" *ngIf="isMobile && sidebarOpen" (click)="toggleSidebar()"></div>
-
-    <div class="home-layout">
-      <!-- Sidebar Filters -->
-      <aside class="filters-sidebar" [class.mobile-open]="sidebarOpen">
-        <div class="sidebar-header">
-          <h3>فیلترها</h3>
-          <button class="close-sidebar" (click)="toggleSidebar()" *ngIf="isMobile">
-            <span>✕</span>
+        <div class="city-selector-wrapper">
+          <button class="city-selector" (click)="toggleProvinceDropdown(); $event.stopPropagation()">
+            <span class="location-icon">📍</span>
+            <span class="city-text">
+              <span *ngIf="selectedCityId">{{ getSelectedCityName() }}</span>
+              <span *ngIf="!selectedCityId">{{ getSelectedProvinceName() }}</span>
+            </span>
+            <span class="dropdown-arrow" [class.open]="provinceDropdownOpen || cityDropdownOpen">▼</span>
           </button>
         </div>
 
-        <!-- Clear All Filters -->
-        <div class="filter-section" *ngIf="hasActiveFilters()">
-          <button class="btn-clear-all" (click)="clearAllFilters()">
-            <span class="icon">🗑️</span>
-            حذف همه فیلترها
-          </button>
+        <!-- Modal Overlay -->
+        <div class="location-modal-overlay" 
+             *ngIf="provinceDropdownOpen"
+             (click)="closeLocationModal()">
         </div>
 
-        <!-- Search Filter -->
-        <div class="filter-section">
-          <label class="filter-label">جستجو</label>
-          <div class="search-filter">
-            <input type="text" [(ngModel)]="searchQuery" (keyup)="applyFilters()"
-              placeholder="نام پزشک، کلینیک، تخصص..." [disabled]="isLoading">
-            <span class="search-icon">🔍</span>
+        <!-- Location Modal with Grouped Cities -->
+        <div class="location-modal" 
+             *ngIf="provinceDropdownOpen"
+             [class.open]="provinceDropdownOpen"
+             (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3 class="modal-title">انتخاب شهر</h3>
+            <button class="modal-close" (click)="closeProvinceModal()">✕</button>
           </div>
-        </div>
-
-        <!-- Specialty Filter -->
-        <div class="filter-section">
-          <label class="filter-label">تخصص</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleSpecialtyDropdown()">
-              <span class="dropdown-text">
-                <span class="dropdown-icon" *ngIf="selectedSpecialty !== null">{{
-                  getSpecialtyIcon(getSelectedSpecialtyName()) }}</span>
-                {{ getSelectedSpecialtyName() }}
-              </span>
-              <span class="dropdown-arrow" [class.open]="specialtyDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="specialtyDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="specialtySearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی تخصص..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
+          <div class="modal-content">
+            <div class="modal-search-wrapper">
+              <input 
+                type="text" 
+                class="modal-search" 
+                placeholder="جستجوی شهر یا استان..."
+                [(ngModel)]="citySearchQuery"
+                (click)="$event.stopPropagation()"
+              />
+              <span class="search-icon">🔍</span>
+            </div>
+            <div class="modal-options" *ngIf="!isLoadingCities">
+              <a class="all-cities-link" (click)="selectCity(null); $event.stopPropagation()">
+                همه شهرها
+              </a>
+              <div *ngFor="let group of getGroupedCities()" class="city-group">
+                <div class="city-group-header">{{ group.province.name }}</div>
+                <button 
+                  *ngFor="let city of group.cities" 
+                  class="modal-option city-option-item"
+                  [class.selected]="selectedCityId === city.id"
+                  (click)="selectCity(city.id!); $event.stopPropagation()"
+                >
+                  {{ city.name }}
+                </button>
               </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedSpecialty === null"
-                  (click)="selectSpecialty(null)">
-                  همه تخصص‌ها
-                </button>
-                <button *ngFor="let specialty of getFilteredSpecialties()" class="dropdown-option"
-                  [class.selected]="selectedSpecialty === specialty.id" (click)="selectSpecialty(specialty.id!)">
-                  <span class="option-icon">{{ getSpecialtyIcon(specialty.name) }}</span>
-                  {{ specialty.name }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredSpecialties().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
+              <div class="modal-options-empty" *ngIf="getGroupedCities().length === 0">
+                نتیجه‌ای یافت نشد
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Medical Condition Filter -->
-        <div class="filter-section">
-          <label class="filter-label">علائم و مشکلات</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleMedicalConditionDropdown()">
-              <span class="dropdown-text">
-                {{ selectedMedicalCondition || 'همه علائم' }}
-              </span>
-              <span class="dropdown-arrow" [class.open]="medicalConditionDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="medicalConditionDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="medicalConditionSearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی علائم..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
-              </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedMedicalCondition === ''"
-                  (click)="selectMedicalCondition('')">
-                  همه علائم
-                </button>
-                <button *ngFor="let condition of getFilteredMedicalConditions()" class="dropdown-option"
-                  [class.selected]="selectedMedicalCondition === condition.name" (click)="selectMedicalCondition(condition.name!)">
-                  {{ condition.name }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredMedicalConditions().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
-              </div>
+            <div class="modal-loading" *ngIf="isLoadingCities">
+              در حال بارگذاری...
             </div>
-          </div>
-        </div>
-
-        <!-- Gender Filter -->
-        <div class="filter-section">
-          <label class="filter-label">جنسیت پزشک</label>
-          <div class="filter-options gender-options">
-            <button class="filter-option" [class.active]="selectedGender === null" (click)="selectGender(null)">
-              <span class="option-icon">👥</span>
-              همه
-            </button>
-            <button class="filter-option" [class.active]="selectedGender === 'male'" (click)="selectGender('male')">
-              <span class="option-icon">👨</span>
-              آقا
-            </button>
-            <button class="filter-option" [class.active]="selectedGender === 'female'" (click)="selectGender('female')">
-              <span class="option-icon">👩</span>
-              خانم
-            </button>
-          </div>
-        </div>
-
-        <!-- City Filter -->
-        <div class="filter-section" *ngIf="availableCities.length > 0">
-          <label class="filter-label">شهر</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleCityDropdown()">
-              <span class="dropdown-text">{{ getSelectedCityName() }}</span>
-              <span class="dropdown-arrow" [class.open]="cityDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="cityDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="citySearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی شهر..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
-              </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedCity === null" (click)="selectCity(null)">
-                  همه شهرها
-                </button>
-                <button *ngFor="let city of getFilteredCities()" class="dropdown-option"
-                  [class.selected]="selectedCity === city" (click)="selectCity(city)">
-                  {{ city }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredCities().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Clinic Filter -->
-        <div class="filter-section" *ngIf="availableClinics.length > 0">
-          <label class="filter-label">کلینیک</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleClinicDropdown()">
-              <span class="dropdown-text">{{ getSelectedClinicName() }}</span>
-              <span class="dropdown-arrow" [class.open]="clinicDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="clinicDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="clinicSearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی کلینیک..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
-              </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedClinicId === null"
-                  (click)="selectClinic(null)">
-                  همه کلینیک‌ها
-                </button>
-                <button *ngFor="let clinic of getFilteredClinics()" class="dropdown-option"
-                  [class.selected]="selectedClinicId === clinic.id" (click)="selectClinic(clinic.id ?? null)">
-                  {{ clinic.name }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredClinics().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Service Filter -->
-        <div class="filter-section" *ngIf="availableServices.length > 0">
-          <label class="filter-label">خدمت</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleServiceDropdown()">
-              <span class="dropdown-text">{{ getSelectedServiceName() }}</span>
-              <span class="dropdown-arrow" [class.open]="serviceDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="serviceDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="serviceSearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی خدمت..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
-              </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedServiceId === null"
-                  (click)="selectService(null)">
-                  همه خدمات
-                </button>
-                <button *ngFor="let service of getFilteredServices()" class="dropdown-option"
-                  [class.selected]="selectedServiceId === service.id" (click)="selectService(service.id ?? null)">
-                  {{ service.name }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredServices().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Insurance Filter -->
-        <div class="filter-section" *ngIf="availableInsurances.length > 0">
-          <label class="filter-label">بیمه</label>
-          <div class="dropdown-container">
-            <button class="dropdown-trigger" (click)="toggleInsuranceDropdown()">
-              <span class="dropdown-text">{{ getSelectedInsuranceName() }}</span>
-              <span class="dropdown-arrow" [class.open]="insuranceDropdownOpen">▼</span>
-            </button>
-            <div class="dropdown-menu" *ngIf="insuranceDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" [(ngModel)]="insuranceSearchQuery" (click)="$event.stopPropagation()"
-                  placeholder="جستجوی بیمه..." class="dropdown-search-input">
-                <span class="search-icon">🔍</span>
-              </div>
-              <div class="dropdown-options">
-                <button class="dropdown-option" [class.selected]="selectedInsuranceId === null"
-                  (click)="selectInsurance(null)">
-                  همه بیمه‌ها
-                </button>
-                <button *ngFor="let insurance of getFilteredInsurances()" class="dropdown-option"
-                  [class.selected]="selectedInsuranceId === insurance.id" (click)="selectInsurance(insurance.id ?? null)">
-                  {{ insurance.name }}
-                </button>
-                <div class="dropdown-empty" *ngIf="getFilteredInsurances().length === 0">
-                  نتیجه‌ای یافت نشد
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- Main Content Area -->
-      <div class="main-content-area">
-        <!-- Top Bar -->
-        <div class="top-bar">
-          <div class="results-info">
-            <h2 class="section-title">
-              لیست پزشکان
-              <span class="doctors-count" *ngIf="!isLoading">
-                ({{ filteredDoctors.length }})
-              </span>
-            </h2>
-          </div>
-          <button class="btn-toggle-filters" (click)="toggleSidebar()" *ngIf="isMobile">
-            <span class="icon">⚙️</span>
-            فیلترها
-          </button>
-        </div>
-
-        <!-- Doctors List -->
-        <div class="doctors-container" [class.loading]="isLoading">
-          <app-loading *ngIf="isLoading" [overlay]="false" message="در حال بارگذاری پزشکان..."></app-loading>
-
-          <div class="doctors-grid" *ngIf="!isLoading && filteredDoctors.length > 0">
-            <div class="doctor-card modern-card" *ngFor="let doctor of filteredDoctors; let i = index">
-              <div class="card-glow"></div>
-              <div class="doctor-card-header">
-                <div class="avatar-wrapper">
-                  <div class="doctor-avatar" [style.background]="getAvatarGradient(i)">
-                    <span class="avatar-icon">{{ getAvatarIcon(doctor) }}</span>
-                  </div>
-                  <div class="status-indicator active"></div>
-                </div>
-                <div class="doctor-info">
-                  <h3 class="doctor-name">{{ getDoctorName(doctor) }}</h3>
-                  <div class="doctor-specialty">
-                    <span class="specialty-icon">{{ getSpecialtyIcon(getSpecialtiesDisplay(doctor)) }}</span>
-                    <span class="specialty-text">{{ getSpecialtiesDisplay(doctor) }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="doctor-card-body">
-                <div class="info-section">
-                  <div class="info-row" *ngIf="getDoctorPhone(doctor)">
-                    <div class="info-label">
-                      <span class="info-icon">📞</span>
-                      تلفن
-                    </div>
-                    <a [href]="'tel:' + getDoctorPhone(doctor)" class="info-value link">{{ getDoctorPhone(doctor) }}</a>
-                  </div>
-
-                  <div class="info-row" *ngIf="getDoctorEmail(doctor)">
-                    <div class="info-label">
-                      <span class="info-icon">📧</span>
-                      ایمیل
-                    </div>
-                    <a [href]="'mailto:' + getDoctorEmail(doctor)" class="info-value link">{{ getDoctorEmail(doctor)
-                      }}</a>
-                  </div>
-
-                  <div class="info-row">
-                    <div class="info-label">
-                      <span class="info-icon">🆔</span>
-                      کد نظام پزشکی
-                    </div>
-                    <span class="info-value">{{ doctor.medicalCode }}</span>
-                  </div>
-
-                  <div class="info-row" *ngIf="getDoctorAddresses(doctor).length > 0">
-                    <div class="info-label">
-                      <span class="info-icon">📍</span>
-                      آدرس
-                    </div>
-                    <div class="info-value address-value">
-                      <span *ngFor="let address of getDoctorAddresses(doctor); let last = last" class="address-item">
-                        {{ address }}<span *ngIf="!last"> • </span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="info-row" *ngIf="doctor.clinics && doctor.clinics.length > 0">
-                    <div class="info-label">
-                      <span class="info-icon">🏥</span>
-                      کلینیک‌ها
-                    </div>
-                    <div class="info-value clinics-value">
-                      <span *ngFor="let clinic of doctor.clinics; let last = last" class="clinic-tag">
-                        {{ clinic.name }}<span *ngIf="!last">، </span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="doctor-card-footer">
-                <button class="btn-appointment modern-btn" (click)="bookAppointment(doctor)">
-                  <span class="btn-icon">📅</span>
-                  <span class="btn-text">رزرو نوبت</span>
-                  <span class="btn-arrow">→</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="empty-state" *ngIf="!isLoading && filteredDoctors.length === 0">
-            <div class="empty-icon">🔍</div>
-            <h3>پزشکی یافت نشد</h3>
-            <p>متأسفانه با فیلترهای انتخابی شما پزشکی یافت نشد. لطفاً فیلترها را تغییر دهید.</p>
-            <button class="btn-clear-filters" (click)="clearAllFilters()" *ngIf="hasActiveFilters()">
-              پاک کردن فیلترها
-            </button>
           </div>
         </div>
       </div>
+
+      <!-- Stats -->
+      <div class="hero-stats">
+        <div class="stat-card">
+          <span class="stat-number">+{{ doctors.length.toLocaleString('fa-IR') }}</span>
+          <span class="stat-label">پزشک</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">+{{ (doctors.length * 350).toLocaleString('fa-IR') }}</span>
+          <span class="stat-label">نوبت موفق</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-number">+{{ (cities.length > 0 ? cities.length : availableCities.length).toLocaleString('fa-IR') }}</span>
+          <span class="stat-label">شهر و روستا</span>
+        </div>
+      </div>
     </div>
-  </main>
+  </section>
+
+  <!-- Service Cards -->
+  <section class="services-section">
+    <div class="services-grid">
+      <div class="service-card" (click)="goToDoctorList()">
+        <div class="service-icon">🏥</div>
+        <h3 class="service-title">نوبت دهی مطب</h3>
+        <p class="service-description">رزرو نوبت از بهترین پزشکان</p>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-icon">💬</div>
+        <h3 class="service-title">مشاوره آنلاین</h3>
+        <p class="service-description">مشاوره پزشکی آنلاین</p>
+        <span class="service-badge">●</span>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-icon">🏢</div>
+        <h3 class="service-title">مراکز درمانی</h3>
+        <p class="service-description">نوبت از مراکز درمانی</p>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-icon">🧪</div>
+        <h3 class="service-title">پذیرش آنلاین آزمایشگاه</h3>
+        <p class="service-description">رزرو آزمایشگاه</p>
+        <span class="service-badge new">جدید</span>
+      </div>
+      
+      <div class="service-card">
+        <div class="service-icon">📰</div>
+        <h3 class="service-title">مجله سلامت</h3>
+        <p class="service-description">مقالات و اخبار سلامت</p>
+      </div>
+    </div>
+  </section>
 </div>

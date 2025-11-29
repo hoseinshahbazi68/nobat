@@ -68,6 +68,17 @@ public class CitiesController : BaseController
         return ToActionResult(response);
     }
 
+    /// <summary>
+    /// دریافت شهرهای یک استان بدون نیاز به احراز هویت (برای صفحه اصلی)
+    /// </summary>
+    [HttpGet("public/province/{provinceId}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetByProvinceIdPublic(int provinceId, CancellationToken cancellationToken)
+    {
+        var response = await _cityService.GetByProvinceIdAsync(provinceId, cancellationToken);
+        return ToActionResult(response);
+    }
+
     [HttpPost]
     //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateCityDto dto, CancellationToken cancellationToken)

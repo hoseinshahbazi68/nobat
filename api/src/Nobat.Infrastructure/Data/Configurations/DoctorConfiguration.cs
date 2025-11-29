@@ -57,11 +57,6 @@ public class DoctorConfiguration : IEntityTypeConfiguration<Doctor>
             .HasForeignKey(ds => ds.DoctorId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasMany(d => d.Appointments)
-            .WithOne(a => a.Doctor)
-            .HasForeignKey(a => a.DoctorId)
-            .OnDelete(DeleteBehavior.Restrict);
-
         // رابطه با DoctorVisitInfo (one-to-one)
         builder.HasOne(d => d.VisitInfo)
             .WithOne(v => v.Doctor)

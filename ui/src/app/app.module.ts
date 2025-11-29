@@ -3,6 +3,7 @@ import { CUSTOM_ELEMENTS_SCHEMA, NgModule, NO_ERRORS_SCHEMA } from '@angular/cor
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { RouterModule } from '@angular/router';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
@@ -26,6 +27,7 @@ import { RichTextEditorComponent } from './components/rich-text-editor/rich-text
 import { SettingsComponent } from './components/settings/settings.component';
 import { TimeMaskDirective } from './directives/time-mask.directive';
 import { AuthInterceptor } from './interceptors/auth.interceptor';
+import { PublicHeaderComponent } from './components/public-header/public-header.component';
 import { ChatSupportComponent } from './pages/chat-support/chat-support.component';
 import { ClinicDialogComponent } from './pages/clinics/clinic-dialog.component';
 import { ClinicFormComponent } from './pages/clinics/clinic-form.component';
@@ -48,6 +50,7 @@ import { GenerateScheduleComponent } from './pages/generate-schedule/generate-sc
 import { HolidayDialogComponent } from './pages/holidays/holiday-dialog.component';
 import { HolidaysComponent } from './pages/holidays/holidays.component';
 import { HomeComponent } from './pages/home/home.component';
+import { DoctorListComponent } from './pages/doctor-list/doctor-list.component';
 import { InsuranceDialogComponent } from './pages/insurances/insurance-dialog.component';
 import { InsurancesComponent } from './pages/insurances/insurances.component';
 import { MedicalConditionDialogComponent } from './pages/medical-conditions/medical-condition-dialog.component';
@@ -129,6 +132,8 @@ import { UsersComponent } from './pages/users/users.component';
     ChatModalComponent,
     HomeComponent,
     ChatSupportComponent,
+    DoctorListComponent,
+    PublicHeaderComponent,
     ClinicsComponent,
     ClinicDialogComponent,
     ClinicFormComponent,

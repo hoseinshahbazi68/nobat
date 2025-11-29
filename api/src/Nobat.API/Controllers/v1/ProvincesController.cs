@@ -39,6 +39,17 @@ public class ProvincesController : BaseController
         return ToActionResult(response);
     }
 
+    /// <summary>
+    /// دریافت لیست استان‌ها بدون نیاز به احراز هویت (برای صفحه اصلی)
+    /// </summary>
+    [HttpGet("public")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllPublic([FromQuery] SieveModel sieveModel, CancellationToken cancellationToken)
+    {
+        var response = await _provinceService.GetAllAsync(sieveModel, cancellationToken);
+        return ToActionResult(response);
+    }
+
     [HttpPost]
     //[Authorize(Roles = "Admin")]
     public async Task<IActionResult> Create([FromBody] CreateProvinceDto dto, CancellationToken cancellationToken)
